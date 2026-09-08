@@ -1,6 +1,6 @@
 //! Application state and update lifecycle.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use cosmic::app::{Core, Task};
 use cosmic::cosmic_config::{Config, CosmicConfigEntry};
@@ -9,7 +9,9 @@ use cosmic::iced::window::Id;
 use cosmic::{Application, Element};
 
 use crate::config::{APP_ID, CONFIG_VERSION, MiniTaskManagerConfig, ThemePreference};
-use crate::process::{FilterTab, ProcessCollector, ProcessItem, SystemOverview, actions};
+use crate::process::{
+    FilterTab, ProcessCollector, ProcessItem, SystemOverview, actions, tree_pids,
+};
 use crate::views;
 
 pub struct AppModel {
@@ -24,6 +26,9 @@ pub struct AppModel {
     pub show_settings: bool,
     /// Result of the last signal we sent, shown at the foot of the popup.
     pub status_message: Option<String>,
+    /// When the last poll happened, to avoid sampling faster than CPU usage
+    /// can actually be measured.
+    pub last_refresh: Instant,
 }
 
 #[derive(Clone, Debug)]
@@ -55,9 +60,30 @@ impl AppModel {
     }
 
     fn refresh(&mut self) {
+        // CPU usage is a delta between two samples. Sampling again within
+        // sysinfo's minimum interval yields 0% for every process, so a quick
+        // double-click on Refresh would blank the whole list.
+        if self.last_refresh.elapsed() < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL {
+            return;
+        }
+
         let (overview, processes) = self.collector.collect();
         self.overview = overview;
         self.processes = processes;
+        self.last_refresh = Instant::now();
+    }
+
+    /// The process plus every descendant, which is what "kill" has to mean if
+    /// it isn't going to leave orphans running.
+    ///
+    /// Our own PID is dropped from the sweep unless it is the process the user
+    /// actually clicked: dying midway would leave the rest of the tree alive.
+    fn kill_targets(&self, root: u32) -> Vec<u32> {
+        let own_pid = std::process::id();
+        tree_pids(root, &self.processes)
+            .into_iter()
+            .filter(|&pid| pid == root || pid != own_pid)
+            .collect()
     }
 
     fn save_config(&self) {
@@ -107,6 +133,7 @@ impl Application for AppModel {
             search_query: String::new(),
             show_settings: false,
             status_message: None,
+            last_refresh: Instant::now(),
         };
 
         let theme_task = Self::apply_theme(app.config.theme_pref);
@@ -147,19 +174,41 @@ impl Application for AppModel {
                 self.refresh();
             }
             Message::KillProcess(pid) => {
+                let pids = self.kill_targets(pid);
+                let children = pids.len().saturating_sub(1);
+
                 self.status_message = Some(match actions::kill_process(pid) {
-                    Ok(()) => crate::fl!("msg-killed", pid = pid),
+                    Ok(()) => {
+                        // The root died; sweep whatever it left behind.
+                        let swept = actions::kill_all(&pids[1..]);
+                        if children == 0 {
+                            crate::fl!("msg-killed", pid = pid)
+                        } else {
+                            crate::fl!("msg-killed-tree", pid = pid, count = swept)
+                        }
+                    }
                     Err(error) => crate::fl!("msg-kill-failed", pid = pid, error = error),
                 });
                 self.refresh();
             }
             Message::KillAllUnresponsive => {
-                let pids: Vec<u32> = self
+                let roots: Vec<u32> = self
                     .processes
                     .iter()
                     .filter(|p| p.is_unresponsive_or_stopped())
                     .map(|p| p.pid)
                     .collect();
+
+                // Trees overlap when a hung parent and its hung child are both
+                // listed, so de-duplicate before signalling anything twice.
+                let mut pids = Vec::new();
+                for root in roots {
+                    for pid in self.kill_targets(root) {
+                        if !pids.contains(&pid) {
+                            pids.push(pid);
+                        }
+                    }
+                }
                 let killed = actions::kill_all(&pids);
                 self.status_message = Some(crate::fl!("msg-killed-all", count = killed));
                 self.refresh();
@@ -231,5 +280,107 @@ impl Application for AppModel {
 
     fn on_close_requested(&self, id: Id) -> Option<Self::Message> {
         Some(Message::PopupClosed(id))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::process::ProcessState;
+
+    fn model() -> AppModel {
+        let mut collector = ProcessCollector::new();
+        let (overview, processes) = collector.collect();
+        AppModel {
+            core: Core::default(),
+            popup: None,
+            config: MiniTaskManagerConfig::default(),
+            collector,
+            overview,
+            processes,
+            active_tab: FilterTab::All,
+            search_query: String::new(),
+            show_settings: false,
+            status_message: None,
+            last_refresh: Instant::now(),
+        }
+    }
+
+    /// Process CPU usage is a delta between two samples. Polling again inside
+    /// sysinfo's minimum interval reports 0% for everything, so a fast double
+    /// click on Refresh would blank every row.
+    #[test]
+    fn refresh_is_ignored_when_it_would_report_zero() {
+        let mut app = model();
+
+        // Give the collector a real sampling window so the numbers mean
+        // something, then record them.
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL * 3);
+        app.refresh();
+        let settled = app.overview.total_cpu_percent;
+        let busiest = app
+            .processes
+            .iter()
+            .map(|p| p.cpu_usage)
+            .fold(0.0f32, f32::max);
+        assert!(
+            busiest > 0.0,
+            "no process reported any CPU; test is not measuring anything"
+        );
+
+        // An immediate second poll must be dropped rather than served a
+        // window too short to measure.
+        app.refresh();
+        assert_eq!(app.overview.total_cpu_percent, settled);
+        assert_eq!(
+            app.processes
+                .iter()
+                .map(|p| p.cpu_usage)
+                .fold(0.0f32, f32::max),
+            busiest
+        );
+
+        // Once the window has passed it polls again.
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL * 3);
+        app.refresh();
+        assert!(app.last_refresh.elapsed() < sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+    }
+
+    /// The sweep must cover descendants, and must not drop the clicked process
+    /// even when that process is the applet itself.
+    #[test]
+    fn kill_targets_covers_descendants_and_keeps_the_clicked_pid() {
+        let mut app = model();
+        app.processes = vec![
+            ProcessItem {
+                pid: 500,
+                parent: Some(1),
+                name: "parent".into(),
+                cmd: String::new(),
+                cpu_usage: 0.0,
+                memory_bytes: 0,
+                status: ProcessState::Running,
+                is_gui_app: false,
+                icon_name: String::new(),
+            },
+            ProcessItem {
+                pid: std::process::id(),
+                parent: Some(500),
+                name: "us".into(),
+                cmd: String::new(),
+                cpu_usage: 0.0,
+                memory_bytes: 0,
+                status: ProcessState::Running,
+                is_gui_app: false,
+                icon_name: String::new(),
+            },
+        ];
+
+        // Our own PID is a descendant here, and is skipped so the sweep can
+        // finish instead of dying halfway through.
+        assert_eq!(app.kill_targets(500), [500]);
+
+        // Clicked directly, it is still the target.
+        assert_eq!(app.kill_targets(std::process::id()), [std::process::id()]);
     }
 }

@@ -50,5 +50,6 @@ msg-stop-failed = 暂停 PID { $pid } 失败: { $error }
 msg-resumed = 已恢复进程 PID { $pid }
 msg-resume-failed = 恢复 PID { $pid } 失败: { $error }
 msg-killed = 已结束进程 PID { $pid }
+msg-killed-tree = 已终止 PID { $pid } 及其 { $count } 个子进程
 msg-kill-failed = 强制结束 PID { $pid } 失败: { $error }
 msg-killed-all = 已强制结束 { $count } 个无响应进程

@@ -23,6 +23,9 @@ struct DesktopAppEntry {
 
 pub struct ProcessCollector {
     sys: System,
+    /// Logical CPU count, used to turn `sysinfo`'s per-core process
+    /// percentages into a share of the whole machine.
+    cpu_count: f32,
     /// Binary name (lowercased) to the `.desktop` entry that launches it.
     desktop_apps: HashMap<String, DesktopAppEntry>,
     /// Consecutive polls each PID has spent in uninterruptible sleep.
@@ -40,6 +43,7 @@ impl ProcessCollector {
         sys.refresh_memory();
 
         Self {
+            cpu_count: sys.cpus().len().max(1) as f32,
             sys,
             desktop_apps: scan_desktop_applications(),
             disk_sleep_ticks: HashMap::new(),
@@ -68,6 +72,7 @@ impl ProcessCollector {
             0.0
         };
 
+        let cpu_count = self.cpu_count;
         let mut items = Vec::with_capacity(self.sys.processes().len());
         let mut unresponsive_count = 0;
         let mut seen_disk_sleep = HashSet::new();
@@ -75,6 +80,15 @@ impl ProcessCollector {
         for (pid, proc_) in self.sys.processes() {
             let pid = pid.as_u32();
             let cmd = proc_.cmd();
+
+            // `sysinfo` lists threads alongside processes on Linux, and a
+            // userland thread inherits its process's command line -- so an
+            // "empty cmdline" test does not catch them. Left in, they showed
+            // up as duplicate rows and their CPU was counted twice, once on
+            // the thread and again on the process that owns it.
+            if proc_.thread_kind().is_some() {
+                continue;
+            }
 
             // Kernel threads have an empty cmdline and aren't ours to manage.
             // PID 1 is kept because init is worth showing even so.
@@ -99,9 +113,14 @@ impl ProcessCollector {
 
             items.push(ProcessItem {
                 pid,
+                parent: proc_.parent().map(|p| p.as_u32()),
                 name,
                 cmd: join_cmd(cmd),
-                cpu_usage: proc_.cpu_usage(),
+                // `sysinfo` reports this per core, so a single busy thread
+                // reads as 100% on a 16-core box while the header says 6%.
+                // Divide through so a row is a share of the whole machine
+                // and the rows add up to the figure in the header.
+                cpu_usage: proc_.cpu_usage() / cpu_count,
                 memory_bytes: proc_.memory(),
                 status,
                 is_gui_app,
@@ -350,6 +369,7 @@ mod tests {
     fn item(pid: u32, name: &str, cpu: f32, mem_mib: u64, status: ProcessState) -> ProcessItem {
         ProcessItem {
             pid,
+            parent: Some(1),
             name: name.to_string(),
             cmd: format!("/usr/bin/{name}"),
             cpu_usage: cpu,
@@ -378,6 +398,80 @@ mod tests {
         assert_eq!(overview.total_processes, procs.len());
         // Our own test binary must be in there.
         assert!(procs.iter().any(|p| p.pid == std::process::id()));
+    }
+
+    /// `sysinfo` lists threads as processes on Linux and a userland thread
+    /// carries its process's command line, so they slipped past the old
+    /// "empty cmdline" filter and were counted twice.
+    #[test]
+    fn threads_are_not_listed_as_processes() {
+        let mut collector = ProcessCollector::new();
+        let (overview, procs) = collector.collect();
+
+        // Ground truth: /proc holds one directory per thread-group leader.
+        let proc_dirs = fs::read_dir("/proc")
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().parse::<u32>().is_ok())
+            .count();
+
+        assert!(
+            procs.len() <= proc_dirs,
+            "reported {} processes but /proc only has {proc_dirs} entries",
+            procs.len()
+        );
+        assert_eq!(overview.total_processes, procs.len());
+
+        // Each PID appears once.
+        let mut pids: Vec<u32> = procs.iter().map(|p| p.pid).collect();
+        pids.sort_unstable();
+        let unique = pids.len();
+        pids.dedup();
+        assert_eq!(pids.len(), unique, "duplicate PIDs in the list");
+    }
+
+    /// A row is a share of the whole machine, not of one core.
+    ///
+    /// `sysinfo` reports per-core usage, so on this 16-core box a single busy
+    /// thread reads as 100% there while the header says 6%. Left unscaled, a
+    /// row could claim 1600%.
+    #[test]
+    fn process_cpu_is_a_share_of_the_whole_machine() {
+        let mut collector = ProcessCollector::new();
+        let (_, procs) = collector.collect();
+        std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL * 2);
+        let (overview, procs) = {
+            let _ = procs;
+            collector.collect()
+        };
+
+        for p in &procs {
+            assert!(
+                (0.0..=100.0).contains(&p.cpu_usage),
+                "{} reported {}% of the machine",
+                p.name,
+                p.cpu_usage
+            );
+        }
+
+        // No single row may claim more than the machine is doing in total.
+        let busiest = procs.iter().map(|p| p.cpu_usage).fold(0.0f32, f32::max);
+        assert!(
+            busiest <= overview.total_cpu_percent + 2.0,
+            "busiest row is {busiest:.2}% but the whole machine is at {:.2}%",
+            overview.total_cpu_percent
+        );
+    }
+
+    #[test]
+    fn every_process_but_init_has_a_parent() {
+        let mut collector = ProcessCollector::new();
+        let (_, procs) = collector.collect();
+
+        // Without a PPID the kill sweep cannot find a process's children.
+        for p in procs.iter().filter(|p| p.pid != 1) {
+            assert!(p.parent.is_some(), "{} (PID {}) has no PPID", p.name, p.pid);
+        }
     }
 
     #[test]

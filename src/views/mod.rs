@@ -107,6 +107,7 @@ mod tests {
             for (j, cmd) in commands.iter().cloned().enumerate() {
                 items.push(ProcessItem {
                     pid: (i * 10 + j) as u32,
+                    parent: Some(1),
                     name: if cmd.is_empty() {
                         String::new()
                     } else {
@@ -151,6 +152,7 @@ mod tests {
             search_query: String::new(),
             show_settings,
             status_message: Some("Killed process PID 1234".to_string()),
+            last_refresh: std::time::Instant::now(),
         }
     }
 

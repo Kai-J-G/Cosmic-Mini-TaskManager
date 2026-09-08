@@ -50,5 +50,6 @@ msg-stop-failed = PID { $pid } の停止に失敗しました: { $error }
 msg-resumed = PID { $pid } のプロセスを再開しました
 msg-resume-failed = PID { $pid } の再開に失敗しました: { $error }
 msg-killed = PID { $pid } のプロセスを強制終了しました
+msg-killed-tree = PID { $pid } と子プロセス { $count } 個を強制終了しました
 msg-kill-failed = PID { $pid } の強制終了に失敗しました: { $error }
 msg-killed-all = { $count } 個の応答不能なプロセスを強制終了しました

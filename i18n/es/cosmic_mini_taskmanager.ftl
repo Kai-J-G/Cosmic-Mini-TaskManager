@@ -53,6 +53,10 @@ msg-stop-failed = Error al detener PID { $pid }: { $error }
 msg-resumed = Proceso PID { $pid } reanudado
 msg-resume-failed = Error al reanudar PID { $pid }: { $error }
 msg-killed = Proceso PID { $pid } terminado
+msg-killed-tree = PID { $pid } y { $count } { $count ->
+    [one] proceso hijo
+   *[other] procesos hijos
+} terminados
 msg-kill-failed = Error al terminar PID { $pid }: { $error }
 msg-killed-all = Se { $count ->
     [one] terminó { $count } proceso bloqueado
