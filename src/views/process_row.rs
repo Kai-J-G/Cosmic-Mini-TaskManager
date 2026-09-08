@@ -63,12 +63,12 @@ pub fn view<'a>(item: &'a ProcessItem, is_dark: bool) -> Element<'a, Message> {
     // "Stop or Kill" Action Buttons
     let action_buttons = match item.status {
         ProcessState::Stopped => {
-            let resume_btn = button::text("Resume")
+            let resume_btn = button::text(crate::fl!("btn-resume"))
                 .on_press(Message::ResumeProcess(item.pid))
                 .class(cosmic::theme::Button::Suggested)
                 .padding([3, 8]);
 
-            let kill_btn = button::text("Kill")
+            let kill_btn = button::text(crate::fl!("btn-kill"))
                 .on_press(Message::KillProcess(item.pid))
                 .class(cosmic::theme::Button::Destructive)
                 .padding([3, 8]);
@@ -76,7 +76,7 @@ pub fn view<'a>(item: &'a ProcessItem, is_dark: bool) -> Element<'a, Message> {
             row![resume_btn, kill_btn].spacing(sp.space_xxs)
         }
         ProcessState::Zombie | ProcessState::DiskSleep => {
-            let kill_btn = button::text("Kill")
+            let kill_btn = button::text(crate::fl!("btn-kill"))
                 .on_press(Message::KillProcess(item.pid))
                 .class(cosmic::theme::Button::Destructive)
                 .padding([3, 10]);
@@ -84,12 +84,12 @@ pub fn view<'a>(item: &'a ProcessItem, is_dark: bool) -> Element<'a, Message> {
             row![kill_btn]
         }
         _ => {
-            let stop_btn = button::text("Stop")
+            let stop_btn = button::text(crate::fl!("btn-stop"))
                 .on_press(Message::StopProcess(item.pid))
                 .class(cosmic::theme::Button::Text)
                 .padding([3, 8]);
 
-            let kill_btn = button::text("Kill")
+            let kill_btn = button::text(crate::fl!("btn-kill"))
                 .on_press(Message::KillProcess(item.pid))
                 .class(cosmic::theme::Button::Destructive)
                 .padding([3, 8]);

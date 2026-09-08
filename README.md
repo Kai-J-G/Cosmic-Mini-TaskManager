@@ -133,6 +133,7 @@ src/
 ├── main.rs              # Application entry point & runtime runner
 ├── app.rs               # Elm-style Model-View-Update (MVU) state machine & subscriptions
 ├── config.rs            # Persistent user configuration (cosmic-config)
+├── localize.rs          # Fluent and i18n-embed localization loader & macros
 ├── process/
 │   ├── mod.rs           # Process subsystem re-exports
 │   ├── types.rs         # ProcessItem, ProcessState, and SystemOverview models
@@ -147,11 +148,14 @@ src/
     ├── process_row.rs   # Tabular process row with formatted metrics & Stop/Kill buttons
     ├── settings.rs      # User settings panel
     └── style.rs         # Theme-aware container & pill badge styling helpers
+
+i18n/                    # Fluent (.ftl) translation catalogs (en, fr, de, es, it, pt, ja, zh-Hans)
 ```
 
 - **State Management**: Built on the Elm Model-View-Update (MVU) pattern provided by `libcosmic` / `iced`.
 - **Debounced Process Monitor**: Processes in uninterruptible sleep (`D`) are debounced across multiple polling ticks to distinguish momentary I/O flushes from actual hung states.
 - **Strict Total Order**: Sorting avoids unstable float comparisons by using integer bucketing and PID tiebreakers, guaranteeing zero crashes and predictable sorting.
+- **Embedded Localization**: Compiled catalogs with zero runtime file dependencies via `rust-embed` and automatic system language selection.
 
 ---
 
@@ -163,11 +167,11 @@ src/
 - [x] **Resource Gauges**: Real-time CPU and RAM utilization meters.
 - [x] **Application Categorization**: Separation of desktop GUI apps from background daemons.
 - [x] **Arch Packaging**: `PKGBUILD` and `justfile` packaging support.
+- [x] **Internationalization (i18n)**: Native localization support via `fluent` and `i18n-embed` (en, fr, de, es, it, pt, ja, zh-Hans).
 - [ ] **Network & Disk I/O Gauges**: Per-process read/write throughput and network transmission metrics.
 - [ ] **Process Tree Hierarchy**: Collapsible tree view showing parent/child process relationships.
 - [ ] **Cgroups Resource Limits**: Ability to throttle CPU shares or set memory limits on specific process cgroups.
 - [ ] **Global Shortcut**: Configurable keybinding to summon the mini task manager popup from anywhere.
-- [ ] **Internationalization (i18n)**: Localization support via `fluent` and `i18n-embed`.
 
 ---
 

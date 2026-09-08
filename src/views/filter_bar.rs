@@ -10,7 +10,7 @@ use crate::process::FilterTab;
 pub fn view(app: &AppModel) -> Element<'_, Message> {
     let sp = cosmic::theme::spacing();
 
-    let search_box = text_input("Search processes or PID...", &app.search_query)
+    let search_box = text_input(crate::fl!("search-placeholder"), &app.search_query)
         .on_input(Message::SearchInput)
         .width(Length::Fill);
 

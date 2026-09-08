@@ -132,10 +132,10 @@ impl Application for AppModel {
             Message::StopProcess(pid) => {
                 match actions::stop_process(pid) {
                     Ok(()) => {
-                        self.status_message = Some(format!("Stopped process PID {}", pid));
+                        self.status_message = Some(crate::fl!("msg-stopped", pid = pid));
                     }
                     Err(e) => {
-                        self.status_message = Some(format!("Failed to stop PID {}: {}", pid, e));
+                        self.status_message = Some(crate::fl!("msg-stop-failed", pid = pid, error = e.to_string()));
                     }
                 }
                 self.refresh();
@@ -143,10 +143,10 @@ impl Application for AppModel {
             Message::ResumeProcess(pid) => {
                 match actions::resume_process(pid) {
                     Ok(()) => {
-                        self.status_message = Some(format!("Resumed process PID {}", pid));
+                        self.status_message = Some(crate::fl!("msg-resumed", pid = pid));
                     }
                     Err(e) => {
-                        self.status_message = Some(format!("Failed to resume PID {}: {}", pid, e));
+                        self.status_message = Some(crate::fl!("msg-resume-failed", pid = pid, error = e.to_string()));
                     }
                 }
                 self.refresh();
@@ -154,10 +154,10 @@ impl Application for AppModel {
             Message::KillProcess(pid) => {
                 match actions::kill_process(pid) {
                     Ok(()) => {
-                        self.status_message = Some(format!("Killed process PID {}", pid));
+                        self.status_message = Some(crate::fl!("msg-killed", pid = pid));
                     }
                     Err(e) => {
-                        self.status_message = Some(format!("Failed to kill PID {}: {}", pid, e));
+                        self.status_message = Some(crate::fl!("msg-kill-failed", pid = pid, error = e.to_string()));
                     }
                 }
                 self.refresh();
@@ -170,7 +170,7 @@ impl Application for AppModel {
                     .map(|p| p.pid)
                     .collect();
                 let killed = actions::kill_all(&pids);
-                self.status_message = Some(format!("Killed {} unresponsive process(es)", killed));
+                self.status_message = Some(crate::fl!("msg-killed-all", count = killed));
                 self.refresh();
             }
             Message::SetInterval(sec) => {

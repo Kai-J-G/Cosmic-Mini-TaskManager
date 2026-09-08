@@ -17,8 +17,8 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .size(20)
         .symbolic(true)
         .icon();
-    let title_text = text::title3("Task Manager");
-    let proc_badge = text::caption(format!("{} processes", overview.total_processes));
+    let title_text = text::title3(crate::fl!("app-title"));
+    let proc_badge = text::caption(crate::fl!("process-count", count = overview.total_processes));
 
     let title_row = row![title_icon, title_text, proc_badge]
         .spacing(sp.space_xs)
@@ -56,18 +56,22 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
 
     // Resource Meters: CPU & RAM
     let cpu_prog = (overview.total_cpu_percent / 100.0).clamp(0.0, 1.0);
-    let cpu_label = text::caption(format!("CPU  {:.1}%", overview.total_cpu_percent));
+    let cpu_percent_str = format!("{:.1}", overview.total_cpu_percent);
+    let cpu_label = text::caption(crate::fl!("cpu-label", percent = cpu_percent_str));
     let cpu_bar = progress_bar::determinate_linear(cpu_prog)
         .width(Length::Fill);
 
     let cpu_card = column![cpu_label, cpu_bar].spacing(sp.space_xxs);
 
     let ram_prog = (overview.memory_percent / 100.0).clamp(0.0, 1.0);
-    let ram_label = text::caption(format!(
-        "RAM  {} / {} ({:.1}%)",
-        format_bytes(overview.used_memory_bytes),
-        format_bytes(overview.total_memory_bytes),
-        overview.memory_percent
+    let ram_used = format_bytes(overview.used_memory_bytes);
+    let ram_total = format_bytes(overview.total_memory_bytes);
+    let ram_percent_str = format!("{:.1}", overview.memory_percent);
+    let ram_label = text::caption(crate::fl!(
+        "ram-label",
+        used = ram_used,
+        total = ram_total,
+        percent = ram_percent_str
     ));
     let ram_bar = progress_bar::determinate_linear(ram_prog)
         .width(Length::Fill);

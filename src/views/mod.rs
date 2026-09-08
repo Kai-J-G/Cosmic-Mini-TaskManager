@@ -51,7 +51,7 @@ pub fn view_popup<'a>(app: &'a AppModel) -> Element<'a, Message> {
     if filtered_procs.is_empty() {
         rows.push(
             container(
-                text::body("No matching processes found.")
+                text::body(crate::fl!("no-processes"))
             )
             .padding(sp.space_l)
             .center(Length::Fill)

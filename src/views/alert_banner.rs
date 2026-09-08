@@ -22,20 +22,16 @@ pub fn view(app: &AppModel) -> Option<Element<'_, Message>> {
         .symbolic(true)
         .icon();
 
-    let plural = if count == 1 { "" } else { "es" };
-    let msg_text = text::body(format!(
-        "{} stopped or unresponsive process{} detected!",
-        count, plural
-    ));
+    let msg_text = text::body(crate::fl!("alert-unresponsive", count = count));
 
-    let view_btn = button::text("Inspect")
+    let view_btn = button::text(crate::fl!("btn-inspect"))
         .on_press(Message::SelectTab(FilterTab::Unresponsive))
         .class(cosmic::theme::Button::Text)
         .padding([5, 12]);
 
     let kill_all_content = row![
         icon::from_name("process-stop-symbolic").size(14).symbolic(true),
-        text::body("Kill All"),
+        text::body(crate::fl!("btn-kill-all")),
     ]
     .spacing(sp.space_xxs)
     .align_y(Alignment::Center);

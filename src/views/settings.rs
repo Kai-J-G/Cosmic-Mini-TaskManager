@@ -9,26 +9,26 @@ use crate::config::ThemePreference;
 
 pub fn view(app: &AppModel) -> Element<'_, Message> {
     let sp = cosmic::theme::spacing();
-    let title = text::title3("Settings");
+    let title = text::title3(crate::fl!("settings-title"));
 
     // Theme selector
-    let theme_label = text::body("Appearance Theme:");
+    let theme_label = text::body(crate::fl!("settings-theme"));
     let theme_buttons = row![
-        button::text("System")
+        button::text(crate::fl!("theme-system"))
             .on_press(Message::SetTheme(ThemePreference::System))
             .class(if app.config.theme_pref == ThemePreference::System {
                 cosmic::theme::Button::Suggested
             } else {
                 cosmic::theme::Button::Text
             }),
-        button::text("Dark")
+        button::text(crate::fl!("theme-dark"))
             .on_press(Message::SetTheme(ThemePreference::Dark))
             .class(if app.config.theme_pref == ThemePreference::Dark {
                 cosmic::theme::Button::Suggested
             } else {
                 cosmic::theme::Button::Text
             }),
-        button::text("Light")
+        button::text(crate::fl!("theme-light"))
             .on_press(Message::SetTheme(ThemePreference::Light))
             .class(if app.config.theme_pref == ThemePreference::Light {
                 cosmic::theme::Button::Suggested
@@ -42,7 +42,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     let theme_section = column![theme_label, theme_buttons].spacing(sp.space_xxs);
 
     // Refresh rate selector
-    let refresh_label = text::body("Refresh Interval:");
+    let refresh_label = text::body(crate::fl!("settings-interval"));
     let intervals = [1, 2, 5];
     let mut interval_buttons = Vec::new();
     for sec in intervals {
@@ -61,8 +61,8 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
 
     // Panel Alert Warning with proper spacing (label on left, toggle on right)
     let warn_label_col = column![
-        text::body("Panel Warning Alert"),
-        text::caption("Show warning indicator in panel when processes hang or stop"),
+        text::body(crate::fl!("settings-warn-title")),
+        text::caption(crate::fl!("settings-warn-desc")),
     ]
     .spacing(2);
 
@@ -78,7 +78,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     .width(Length::Fill);
 
     // Back to task manager button
-    let back_btn = button::text("Done")
+    let back_btn = button::text(crate::fl!("settings-done"))
         .on_press(Message::ToggleSettings)
         .class(cosmic::theme::Button::Suggested);
 

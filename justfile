@@ -3,7 +3,7 @@ export APPID := 'io.github.kai_j_g.CosmicMiniTaskManager'
 
 rootdir := env_var_or_default("DESTDIR", "")
 prefix := env_var_or_default("PREFIX", if rootdir != "" { "/usr" } else { env_var('HOME') / '.local' })
-base_dir := rootdir / prefix
+base_dir := if rootdir != "" { rootdir / prefix } else { prefix }
 bin_dir := base_dir / 'bin'
 app_dir := base_dir / 'share' / 'applications'
 metainfo_dir := base_dir / 'share' / 'metainfo'

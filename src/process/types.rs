@@ -13,14 +13,14 @@ pub enum ProcessState {
 }
 
 impl ProcessState {
-    pub fn label(&self) -> &'static str {
+    pub fn label(&self) -> String {
         match self {
-            Self::Running => "Run",
-            Self::Sleeping => "Sleep",
-            Self::Stopped => "STOPPED",
-            Self::Zombie => "ZOMBIE",
-            Self::DiskSleep => "HUNG",
-            Self::Other => "Other",
+            Self::Running => crate::fl!("status-run"),
+            Self::Sleeping => crate::fl!("status-sleep"),
+            Self::Stopped => crate::fl!("status-stopped"),
+            Self::Zombie => crate::fl!("status-zombie"),
+            Self::DiskSleep => crate::fl!("status-hung"),
+            Self::Other => crate::fl!("status-other"),
         }
     }
 
@@ -75,13 +75,13 @@ pub enum FilterTab {
 }
 
 impl FilterTab {
-    pub fn label(&self) -> &'static str {
+    pub fn label(&self) -> String {
         match self {
-            Self::All => "All",
-            Self::Apps => "Apps",
-            Self::TopCpu => "Top CPU",
-            Self::TopMemory => "Top RAM",
-            Self::Unresponsive => "Stopped / Hung",
+            Self::All => crate::fl!("tab-all"),
+            Self::Apps => crate::fl!("tab-apps"),
+            Self::TopCpu => crate::fl!("tab-top-cpu"),
+            Self::TopMemory => crate::fl!("tab-top-ram"),
+            Self::Unresponsive => crate::fl!("tab-unresponsive"),
         }
     }
 }

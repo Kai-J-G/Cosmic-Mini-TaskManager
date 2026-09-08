@@ -14,9 +14,11 @@
 //!   ([`process::actions`]).
 //! - [`views`]: Native `libcosmic` UI components, including the panel button, frosted-glass
 //!   Wayland popup surface, resource gauges, filter tabs, alert banners, and process rows.
+//! - [`localize`]: Fluent and i18n-embed localization support.
 
 mod app;
 mod config;
+pub mod localize;
 mod process;
 mod views;
 

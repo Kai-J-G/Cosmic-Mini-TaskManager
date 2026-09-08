@@ -10,6 +10,9 @@ repository = "https://github.com/Kai-J-G/Cosmic-Mini-TaskManager"
 serde = { version = "1", features = ["derive"] }
 libc = "0.2"
 sysinfo = "0.33"
+i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "0.10"
+rust-embed = "8"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"
