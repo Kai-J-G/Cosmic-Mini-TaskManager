@@ -1,8 +1,6 @@
 //! Types for system processes, resource metrics, and filtering.
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProcessState {
     Running,
     Sleeping,
@@ -13,7 +11,7 @@ pub enum ProcessState {
 }
 
 impl ProcessState {
-    pub fn label(&self) -> String {
+    pub fn label(self) -> String {
         match self {
             Self::Running => crate::fl!("status-run"),
             Self::Sleeping => crate::fl!("status-sleep"),
@@ -24,7 +22,9 @@ impl ProcessState {
         }
     }
 
-    pub fn is_unresponsive_or_stopped(&self) -> bool {
+    /// Stopped, dead, or stuck in uninterruptible I/O: states the user
+    /// probably wants to know about.
+    pub fn is_unresponsive_or_stopped(self) -> bool {
         matches!(self, Self::Stopped | Self::Zombie | Self::DiskSleep)
     }
 }
@@ -57,9 +57,6 @@ pub struct SystemOverview {
     pub used_memory_bytes: u64,
     pub total_memory_bytes: u64,
     pub memory_percent: f32,
-    pub used_swap_bytes: u64,
-    pub total_swap_bytes: u64,
-    pub swap_percent: f32,
     pub total_processes: usize,
     pub unresponsive_or_stopped_count: usize,
 }
@@ -75,7 +72,7 @@ pub enum FilterTab {
 }
 
 impl FilterTab {
-    pub fn label(&self) -> String {
+    pub fn label(self) -> String {
         match self {
             Self::All => crate::fl!("tab-all"),
             Self::Apps => crate::fl!("tab-apps"),
@@ -86,18 +83,36 @@ impl FilterTab {
     }
 }
 
+/// Formats a byte count with binary units, matching how `sysinfo` reports memory.
 pub fn format_bytes(bytes: u64) -> String {
-    const KIB: u64 = 1024;
-    const MIB: u64 = 1024 * 1024;
-    const GIB: u64 = 1024 * 1024 * 1024;
+    const KIB: f64 = 1024.0;
+    const MIB: f64 = 1024.0 * KIB;
+    const GIB: f64 = 1024.0 * MIB;
 
+    let bytes = bytes as f64;
     if bytes >= GIB {
-        format!("{:.1} GB", bytes as f64 / GIB as f64)
+        format!("{:.1} GiB", bytes / GIB)
     } else if bytes >= MIB {
-        format!("{:.1} MB", bytes as f64 / MIB as f64)
+        format!("{:.1} MiB", bytes / MIB)
     } else if bytes >= KIB {
-        format!("{:.0} KB", bytes as f64 / KIB as f64)
+        format!("{:.0} KiB", bytes / KIB)
     } else {
-        format!("{} B", bytes)
+        format!("{bytes:.0} B")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bytes_are_formatted_with_binary_units() {
+        assert_eq!(format_bytes(0), "0 B");
+        assert_eq!(format_bytes(512), "512 B");
+        assert_eq!(format_bytes(1024), "1 KiB");
+        assert_eq!(format_bytes(1024 * 1024), "1.0 MiB");
+        assert_eq!(format_bytes(3 * 1024 * 1024 * 1024 / 2), "1.5 GiB");
+        // No overflow or panic at the top of the range.
+        assert!(format_bytes(u64::MAX).ends_with(" GiB"));
     }
 }

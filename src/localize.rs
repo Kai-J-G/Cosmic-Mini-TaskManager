@@ -1,9 +1,9 @@
-//! Localization loader and fluent macros.
+//! Localization, backed by Fluent catalogs embedded at build time.
 
-use i18n_embed::fluent::{fluent_language_loader, FluentLanguageLoader};
+use i18n_embed::fluent::{FluentLanguageLoader, fluent_language_loader};
 use i18n_embed::{DefaultLocalizer, LanguageLoader, Localizer};
 use rust_embed::RustEmbed;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 
 #[derive(RustEmbed)]
 #[folder = "i18n/"]
@@ -11,45 +11,34 @@ struct Localizations;
 
 pub static LANGUAGE_LOADER: LazyLock<FluentLanguageLoader> = LazyLock::new(|| {
     let loader: FluentLanguageLoader = fluent_language_loader!();
-
     loader
         .load_fallback_language(&Localizations)
-        .expect("Error while loading fallback language");
-
+        .expect("i18n/en catalog is embedded at build time");
     loader
 });
 
-static LOCALIZATION_INITIALIZED: OnceLock<()> = OnceLock::new();
-
+/// Looks up a message by id, with optional Fluent arguments.
 #[macro_export]
 macro_rules! fl {
     ($message_id:literal) => {{
-        $crate::localize::localize();
         i18n_embed_fl::fl!($crate::localize::LANGUAGE_LOADER, $message_id)
     }};
     ($message_id:literal, $($args:expr),*) => {{
-        $crate::localize::localize();
         i18n_embed_fl::fl!($crate::localize::LANGUAGE_LOADER, $message_id, $($args), *)
     }};
 }
 
-/// Returns the `Localizer` for cosmic-mini-taskmanager.
 pub fn localizer() -> Box<dyn Localizer> {
     Box::from(DefaultLocalizer::new(&*LANGUAGE_LOADER, &Localizations))
 }
 
-/// Selects desktop language if not already initialized.
-pub fn localize() {
-    LOCALIZATION_INITIALIZED.get_or_init(|| {
-        let localizer = localizer();
-        let requested_languages = i18n_embed::DesktopLanguageRequester::requested_languages();
-        if let Err(error) = localizer.select(&requested_languages) {
-            eprintln!(
-                "Error while loading language for cosmic-mini-taskmanager: {}",
-                error
-            );
-        }
-    });
+/// Loads the catalog matching the desktop's language. Call once at startup:
+/// `fl!` is used inside the render loop and must not do this per lookup.
+pub fn init() {
+    let requested = i18n_embed::DesktopLanguageRequester::requested_languages();
+    if let Err(error) = localizer().select(&requested) {
+        eprintln!("cosmic-mini-taskmanager: could not load language: {error}");
+    }
 }
 
 #[cfg(test)]
@@ -57,37 +46,54 @@ mod tests {
     use super::*;
     use i18n_embed::unic_langid::LanguageIdentifier;
 
-    #[test]
-    fn test_fallback_strings() {
-        let title = fl!("app-title");
-        assert_eq!(title, "Task Manager");
+    /// Message ids defined in a language's catalog, read straight from the
+    /// embedded `.ftl` so this checks the shipped files rather than the loader.
+    fn message_ids(lang: &str) -> Vec<String> {
+        let path = format!("{lang}/cosmic_mini_taskmanager.ftl");
+        let file = Localizations::get(&path).expect("catalog is embedded");
+        let text = std::str::from_utf8(&file.data).expect("catalog is UTF-8");
 
-        let stop = fl!("btn-stop");
-        assert_eq!(stop, "Stop");
+        text.lines()
+            .filter(|line| !line.starts_with([' ', '#', '.', '*', '[']))
+            .filter_map(|line| line.split_once(" ="))
+            .map(|(id, _)| id.trim().to_string())
+            .collect()
     }
 
+    /// One test, because selecting a language mutates the process-wide loader:
+    /// split across `#[test]` functions these would race each other.
     #[test]
-    fn test_message_with_arguments() {
-        let msg = fl!("msg-stopped", pid = 1234);
-        assert!(msg.contains("1234"));
-        assert!(msg.contains("Stopped process PID"));
-    }
-
-    #[test]
-    fn test_language_selection() {
+    fn catalogs_resolve_in_every_shipped_language() {
         let localizer = localizer();
-        let fr: LanguageIdentifier = "fr".parse().unwrap();
-        let _ = localizer.select(&[fr]);
-        let fr_title = i18n_embed_fl::fl!(&*LANGUAGE_LOADER, "app-title");
-        assert_eq!(fr_title, "Gestionnaire des tâches");
 
-        let de: LanguageIdentifier = "de".parse().unwrap();
-        let _ = localizer.select(&[de]);
-        let de_title = i18n_embed_fl::fl!(&*LANGUAGE_LOADER, "app-title");
-        assert_eq!(de_title, "Taskmanager");
+        // Fallback (en) is loaded eagerly.
+        assert_eq!(fl!("app-title"), "Task Manager");
+        assert_eq!(fl!("btn-stop"), "Stop");
+        assert!(fl!("msg-stopped", pid = 1234).contains("1234"));
 
-        // Restore fallback
+        for (tag, title) in [("fr", "Gestionnaire des tâches"), ("de", "Taskmanager")] {
+            let lang: LanguageIdentifier = tag.parse().unwrap();
+            localizer.select(&[lang]).unwrap();
+            assert_eq!(fl!("app-title"), title, "wrong title for {tag}");
+        }
+
+        // Every catalog must define every message the fallback does, or the
+        // UI falls back to English mid-sentence.
+        let expected = message_ids("en");
+        assert!(!expected.is_empty());
+
+        for path in Localizations::iter() {
+            let Some(lang) = path.split('/').next() else {
+                continue;
+            };
+            let missing: Vec<_> = expected
+                .iter()
+                .filter(|id| !message_ids(lang).contains(*id))
+                .collect();
+            assert!(missing.is_empty(), "{lang} is missing {missing:?}");
+        }
+
         let en: LanguageIdentifier = "en".parse().unwrap();
-        let _ = localizer.select(&[en]);
+        localizer.select(&[en]).unwrap();
     }
 }

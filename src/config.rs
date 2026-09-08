@@ -1,6 +1,6 @@
 //! Persisted settings, stored through `cosmic-config`.
 
-use cosmic::cosmic_config::{self, cosmic_config_derive::CosmicConfigEntry, CosmicConfigEntry};
+use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
 use serde::{Deserialize, Serialize};
 
 pub const APP_ID: &str = "io.github.kai_j_g.CosmicMiniTaskManager";
@@ -16,26 +16,29 @@ pub enum ThemePreference {
 }
 
 impl ThemePreference {
-    /// The theme to apply, or `None` when the desktop's own theme should win.
-    pub fn theme(self) -> Option<cosmic::Theme> {
+    /// The theme to apply for this preference.
+    ///
+    /// `Dark` and `Light` set `prefer_dark` so that the shell's own
+    /// light/dark switch does not override an explicit choice; `System`
+    /// leaves it unset so the theme keeps following the desktop.
+    pub fn theme(self) -> cosmic::Theme {
         let mut theme = match self {
-            Self::System => return None,
-            Self::Dark => cosmic::theme::system_dark(),
-            Self::Light => cosmic::theme::system_light(),
+            Self::System => cosmic::theme::system_preference(),
+            Self::Dark => {
+                let mut t = cosmic::theme::system_dark();
+                t.theme_type.prefer_dark(Some(true));
+                t
+            }
+            Self::Light => {
+                let mut t = cosmic::theme::system_light();
+                t.theme_type.prefer_dark(Some(false));
+                t
+            }
         };
         // Applet popups blur whatever is behind them.
         theme.transparent = true;
-        Some(theme)
+        theme
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Default)]
-pub enum SortColumn {
-    #[default]
-    Cpu,
-    Memory,
-    Name,
-    Status,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, CosmicConfigEntry)]
@@ -43,8 +46,6 @@ pub enum SortColumn {
 pub struct MiniTaskManagerConfig {
     pub refresh_interval_secs: u64,
     pub theme_pref: ThemePreference,
-    pub default_sort: SortColumn,
-    pub show_system_processes: bool,
     pub warn_unresponsive_in_panel: bool,
 }
 
@@ -53,8 +54,6 @@ impl Default for MiniTaskManagerConfig {
         Self {
             refresh_interval_secs: 2,
             theme_pref: ThemePreference::System,
-            default_sort: SortColumn::Cpu,
-            show_system_processes: true,
             warn_unresponsive_in_panel: true,
         }
     }

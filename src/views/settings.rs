@@ -1,8 +1,8 @@
 //! Settings view for configuring refresh interval, theme preference, and alerts.
 
+use cosmic::Element;
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{button, column, container, row, space, text, toggler};
-use cosmic::Element;
 
 use crate::app::{AppModel, Message};
 use crate::config::ThemePreference;
@@ -56,7 +56,9 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
             });
         interval_buttons.push(btn.into());
     }
-    let interval_row = row(interval_buttons).spacing(sp.space_xs).align_y(Alignment::Center);
+    let interval_row = row(interval_buttons)
+        .spacing(sp.space_xs)
+        .align_y(Alignment::Center);
     let refresh_section = column![refresh_label, interval_row].spacing(sp.space_xxs);
 
     // Panel Alert Warning with proper spacing (label on left, toggle on right)
@@ -66,8 +68,8 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     ]
     .spacing(2);
 
-    let warn_toggle_btn = toggler(app.config.warn_unresponsive_in_panel)
-        .on_toggle(Message::ToggleWarnInPanel);
+    let warn_toggle_btn =
+        toggler(app.config.warn_unresponsive_in_panel).on_toggle(Message::ToggleWarnInPanel);
 
     let warn_row = row![
         warn_label_col,

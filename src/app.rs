@@ -4,14 +4,12 @@ use std::time::Duration;
 
 use cosmic::app::{Core, Task};
 use cosmic::cosmic_config::{Config, CosmicConfigEntry};
-use cosmic::iced::window::Id;
 use cosmic::iced::Subscription;
+use cosmic::iced::window::Id;
 use cosmic::{Application, Element};
 
-use crate::config::{MiniTaskManagerConfig, ThemePreference, APP_ID, CONFIG_VERSION};
-use crate::process::{
-    actions, FilterTab, ProcessCollector, ProcessItem, SystemOverview,
-};
+use crate::config::{APP_ID, CONFIG_VERSION, MiniTaskManagerConfig, ThemePreference};
+use crate::process::{FilterTab, ProcessCollector, ProcessItem, SystemOverview, actions};
 use crate::views;
 
 pub struct AppModel {
@@ -24,6 +22,7 @@ pub struct AppModel {
     pub active_tab: FilterTab,
     pub search_query: String,
     pub show_settings: bool,
+    /// Result of the last signal we sent, shown at the foot of the popup.
     pub status_message: Option<String>,
 }
 
@@ -68,10 +67,9 @@ impl AppModel {
     }
 
     fn apply_theme(pref: ThemePreference) -> Task<Message> {
-        let Some(theme) = pref.theme() else {
-            return Task::none();
-        };
-        cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::AppThemeChange(theme)))
+        cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::AppThemeChange(
+            pref.theme(),
+        )))
     }
 }
 
@@ -122,44 +120,37 @@ impl Application for AppModel {
             }
             Message::SelectTab(tab) => {
                 self.active_tab = tab;
+                self.status_message = None;
             }
             Message::SearchInput(query) => {
                 self.search_query = query;
+                self.status_message = None;
             }
             Message::ToggleSettings => {
                 self.show_settings = !self.show_settings;
+                self.status_message = None;
             }
+            // Each signal is followed by a refresh so the row's status badge
+            // updates immediately instead of at the next tick.
             Message::StopProcess(pid) => {
-                match actions::stop_process(pid) {
-                    Ok(()) => {
-                        self.status_message = Some(crate::fl!("msg-stopped", pid = pid));
-                    }
-                    Err(e) => {
-                        self.status_message = Some(crate::fl!("msg-stop-failed", pid = pid, error = e.to_string()));
-                    }
-                }
+                self.status_message = Some(match actions::stop_process(pid) {
+                    Ok(()) => crate::fl!("msg-stopped", pid = pid),
+                    Err(error) => crate::fl!("msg-stop-failed", pid = pid, error = error),
+                });
                 self.refresh();
             }
             Message::ResumeProcess(pid) => {
-                match actions::resume_process(pid) {
-                    Ok(()) => {
-                        self.status_message = Some(crate::fl!("msg-resumed", pid = pid));
-                    }
-                    Err(e) => {
-                        self.status_message = Some(crate::fl!("msg-resume-failed", pid = pid, error = e.to_string()));
-                    }
-                }
+                self.status_message = Some(match actions::resume_process(pid) {
+                    Ok(()) => crate::fl!("msg-resumed", pid = pid),
+                    Err(error) => crate::fl!("msg-resume-failed", pid = pid, error = error),
+                });
                 self.refresh();
             }
             Message::KillProcess(pid) => {
-                match actions::kill_process(pid) {
-                    Ok(()) => {
-                        self.status_message = Some(crate::fl!("msg-killed", pid = pid));
-                    }
-                    Err(e) => {
-                        self.status_message = Some(crate::fl!("msg-kill-failed", pid = pid, error = e.to_string()));
-                    }
-                }
+                self.status_message = Some(match actions::kill_process(pid) {
+                    Ok(()) => crate::fl!("msg-killed", pid = pid),
+                    Err(error) => crate::fl!("msg-kill-failed", pid = pid, error = error),
+                });
                 self.refresh();
             }
             Message::KillAllUnresponsive => {
@@ -173,8 +164,8 @@ impl Application for AppModel {
                 self.status_message = Some(crate::fl!("msg-killed-all", count = killed));
                 self.refresh();
             }
-            Message::SetInterval(sec) => {
-                self.config.refresh_interval_secs = sec;
+            Message::SetInterval(secs) => {
+                self.config.refresh_interval_secs = secs;
                 self.save_config();
             }
             Message::SetTheme(pref) => {
@@ -182,8 +173,8 @@ impl Application for AppModel {
                 self.save_config();
                 return Self::apply_theme(pref);
             }
-            Message::ToggleWarnInPanel(val) => {
-                self.config.warn_unresponsive_in_panel = val;
+            Message::ToggleWarnInPanel(enabled) => {
+                self.config.warn_unresponsive_in_panel = enabled;
                 self.save_config();
             }
             Message::ConfigChanged(config) => {
@@ -195,12 +186,14 @@ impl Application for AppModel {
             }
             Message::ClosePopup => {
                 if let Some(id) = self.popup.take() {
+                    self.status_message = None;
                     return views::panel::destroy(id);
                 }
             }
             Message::PopupClosed(id) => {
                 if self.popup == Some(id) {
                     self.popup = None;
+                    self.status_message = None;
                 }
             }
             Message::Surface(action) => {

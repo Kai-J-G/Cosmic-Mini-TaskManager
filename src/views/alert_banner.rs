@@ -1,8 +1,8 @@
 //! High-visibility alert banner shown when stopped or unresponsive processes are detected.
 
+use cosmic::Element;
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{button, container, icon, row, space, text};
-use cosmic::Element;
 
 use crate::app::{AppModel, Message};
 use crate::process::FilterTab;
@@ -15,7 +15,6 @@ pub fn view(app: &AppModel) -> Option<Element<'_, Message>> {
     }
 
     let sp = cosmic::theme::spacing();
-    let is_dark = app.is_dark();
 
     let warn_icon = icon::from_name("dialog-warning-symbolic")
         .size(20)
@@ -30,7 +29,9 @@ pub fn view(app: &AppModel) -> Option<Element<'_, Message>> {
         .padding([5, 12]);
 
     let kill_all_content = row![
-        icon::from_name("process-stop-symbolic").size(14).symbolic(true),
+        icon::from_name("process-stop-symbolic")
+            .size(14)
+            .symbolic(true),
         text::body(crate::fl!("btn-kill-all")),
     ]
     .spacing(sp.space_xxs)
@@ -53,7 +54,7 @@ pub fn view(app: &AppModel) -> Option<Element<'_, Message>> {
         .align_y(Alignment::Center)
         .padding([sp.space_xs, sp.space_s]),
     )
-    .class(alert_container(is_dark))
+    .class(alert_container())
     .width(Length::Fill);
 
     Some(banner.into())
