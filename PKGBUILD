@@ -1,6 +1,6 @@
 # Maintainer: Kai <https://github.com/Kai-J-G>
 pkgname=cosmic-mini-taskmanager
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="Native mini task manager applet for the COSMIC Desktop Environment"
 arch=('x86_64' 'aarch64')

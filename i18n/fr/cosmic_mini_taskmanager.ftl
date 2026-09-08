@@ -53,6 +53,10 @@ msg-stop-failed = Échec de suspension du PID { $pid } : { $error }
 msg-resumed = Processus PID { $pid } repris
 msg-resume-failed = Échec de reprise du PID { $pid } : { $error }
 msg-killed = Processus PID { $pid } tué
+msg-killed-tree = PID { $pid } et { $count } processus enfant{ $count ->
+    [one] {""}
+   *[other] s
+} arrêtés
 msg-kill-failed = Échec de l'arrêt forcé du PID { $pid } : { $error }
 msg-killed-all = { $count } processus non répondant{ $count ->
     [one] {" "}tué

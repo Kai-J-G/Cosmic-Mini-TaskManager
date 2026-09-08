@@ -53,6 +53,10 @@ msg-stop-failed = Failed to stop PID { $pid }: { $error }
 msg-resumed = Resumed process PID { $pid }
 msg-resume-failed = Failed to resume PID { $pid }: { $error }
 msg-killed = Killed process PID { $pid }
+msg-killed-tree = Killed PID { $pid } and { $count } child { $count ->
+    [one] process
+   *[other] processes
+}
 msg-kill-failed = Failed to kill PID { $pid }: { $error }
 msg-killed-all = Killed { $count } unresponsive { $count ->
     [one] process

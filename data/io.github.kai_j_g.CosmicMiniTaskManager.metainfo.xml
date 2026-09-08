@@ -47,6 +47,20 @@
   <url type="vcs-browser">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
 
   <releases>
+    <release version="1.1.0" date="2026-09-08">
+      <description>
+        <p>Killing a process now also kills its children, so nothing is left orphaned.</p>
+        <ul>
+          <li>Threads are no longer listed as separate processes, which inflated the
+              process count and double-counted CPU usage.</li>
+          <li>Per-process CPU is now a share of the whole machine, matching the
+              figure in the header.</li>
+          <li>Fixed a crash on command lines containing non-ASCII characters.</li>
+          <li>An explicit Dark or Light choice is no longer overridden by the
+              desktop's own light/dark switch.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-09-08">
       <description>
         <p>Initial release of Cosmic Mini Task Manager applet.</p>

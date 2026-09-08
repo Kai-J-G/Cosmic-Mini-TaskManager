@@ -53,5 +53,9 @@ msg-stop-failed = Impossibile fermare il PID { $pid }: { $error }
 msg-resumed = Processo PID { $pid } ripreso
 msg-resume-failed = Impossibile riprendere il PID { $pid }: { $error }
 msg-killed = Processo PID { $pid } terminato
+msg-killed-tree = Terminati il PID { $pid } e { $count } { $count ->
+    [one] processo figlio
+   *[other] processi figli
+}
 msg-kill-failed = Impossibile terminare il PID { $pid }: { $error }
 msg-killed-all = { $count } processi non rispondenti terminati

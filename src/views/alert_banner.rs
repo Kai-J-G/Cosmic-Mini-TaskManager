@@ -1,6 +1,7 @@
 //! High-visibility alert banner shown when stopped or unresponsive processes are detected.
 
 use cosmic::Element;
+use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{button, container, icon, row, space, text};
 
@@ -21,18 +22,21 @@ pub fn view(app: &AppModel) -> Option<Element<'_, Message>> {
         .symbolic(true)
         .icon();
 
-    let msg_text = text::body(crate::fl!("alert-unresponsive", count = count));
+    let msg_text =
+        text::body(crate::fl!("alert-unresponsive", count = count)).width(Length::Shrink);
 
     let view_btn = button::text(crate::fl!("btn-inspect"))
         .on_press(Message::SelectTab(FilterTab::Unresponsive))
         .class(cosmic::theme::Button::Text)
         .padding([5, 12]);
 
+    // Without Wrapping::None the label breaks onto two lines inside the pill
+    // as soon as the banner message is long enough to squeeze it.
     let kill_all_content = row![
         icon::from_name("process-stop-symbolic")
             .size(14)
             .symbolic(true),
-        text::body(crate::fl!("btn-kill-all")),
+        text::body(crate::fl!("btn-kill-all")).wrapping(Wrapping::None),
     ]
     .spacing(sp.space_xxs)
     .align_y(Alignment::Center);

@@ -1,9 +1,23 @@
-# Cosmic Mini Task Manager
+<div align="center">
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/Kai-J-G/Cosmic-Mini-TaskManager/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Languages](https://img.shields.io/badge/languages-8-orange)](#languages)
-[![COSMIC](https://img.shields.io/badge/desktop-COSMIC-purple)](https://system76.com/cosmic)
+<img src="data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg" width="180" alt="Cosmic Mini Task Manager icon">
+
+# COSMIC MINI TASK MANAGER
+
+**Find what's eating your CPU and kill it, from the COSMIC panel.**
+
+![license MIT](https://img.shields.io/badge/license-MIT-blue)
+![release v1.1.0](https://img.shields.io/badge/release-v1.1.0-brightgreen)
+![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
+![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
+
+🇬🇧 · 🇫🇷 · 🇩🇪 · 🇪🇸 · 🇮🇹 · 🇵🇹 · 🇯🇵 · 🇨🇳
+
+<img src="data/screenshots/task-manager-overview.png" width="620" alt="The popup, showing CPU and RAM meters, filter tabs, and process rows">
+
+</div>
+
+---
 
 A small process monitor that lives in the COSMIC panel. Click it and you get CPU and
 memory usage, a list of what's running, and buttons to stop, resume, or kill anything
@@ -11,8 +25,6 @@ misbehaving — without opening a full system monitor or reaching for `htop`.
 
 It exists because the thing I actually wanted from a task manager, 95% of the time,
 was "which process is eating my CPU, and can I kill it right now".
-
-![The popup, showing CPU and RAM meters, filter tabs, and process rows](data/screenshots/task-manager-overview.png)
 
 ## What it does
 
@@ -30,6 +42,9 @@ Inside the popup:
 - **Per-process actions.** Stop (`SIGSTOP`), Resume (`SIGCONT`), Kill (`SIGKILL`).
   Which buttons appear depends on the state — a stopped process offers Resume, a zombie
   only offers Kill.
+- **Kill takes the whole tree.** Killing a process kills its children and their children
+  too, so you don't get orphans left running. Killing a browser or a file manager takes
+  its helper processes with it instead of stranding them.
 - **Kill All**, in the warning banner, for when several things have wedged at once.
 
 GUI applications are matched against installed `.desktop` files, so they show their
@@ -118,9 +133,19 @@ than falling back to English mid-sentence.
 - **You can only signal your own processes.** Anything owned by root or another user
   returns "Operation not permitted", which shows up in the status line at the foot of
   the popup. The applet doesn't ask for privilege escalation.
-- **Kill is `SIGKILL`.** There's no "terminate gracefully first" step, so an application
-  killed this way will not save anything. That's deliberate — it's the button you press
-  when asking nicely has already failed.
+- **Kill is `SIGKILL`, and it takes descendants with it.** There's no "terminate
+  gracefully first" step, so nothing killed this way saves its work. That's deliberate —
+  it's the button you press when asking nicely has already failed. The descendant list is
+  captured before the root dies, since children are reparented to init the moment it
+  does. Note that killing something far up the tree takes everything under it: kill your
+  session leader and you end your session.
+- **CPU is a share of the whole machine, not of one core.** A single-threaded process
+  pegging one core on a 16-core box reads as about 6%, not 100%, so the rows add up to
+  the figure in the header. If you're used to `htop`'s per-core numbers, multiply by your
+  core count.
+- **Threads aren't listed separately.** `sysinfo` reports them alongside processes on
+  Linux, and a userland thread carries its process's command line — so they used to
+  appear as duplicate rows with their CPU counted twice.
 - **"Hung" means two consecutive polls in uninterruptible sleep.** A single poll in `D`
   state is just a normal disk read, so a process has to stay there to get flagged.
 - **The list renders at most 80 rows.** The toolkit builds every widget in the tree each
@@ -142,10 +167,14 @@ cargo build --release
 cargo test
 ```
 
-The test suite covers signal dispatch, filtering and sort ordering, byte formatting,
-translation completeness, and building the full widget tree for every tab against
-deliberately hostile process data — long command lines, multi-byte characters, `NaN` CPU
-values, and empty names.
+The test suite covers signal dispatch, process-tree walking, filtering and sort ordering,
+byte formatting, translation completeness, and building the full widget tree for every tab
+against deliberately hostile process data — long command lines, multi-byte characters,
+`NaN` CPU values, and empty names.
+
+Two tests spawn a real three-level process tree: one asserts that killing only the root
+*does* leave orphans, the other that the sweep doesn't. The first exists so the second
+can't quietly stop proving anything.
 
 ## Layout
 
@@ -156,7 +185,7 @@ src/
 ├── config.rs               persisted settings
 ├── localize.rs             Fluent catalog loading
 ├── process/
-│   ├── types.rs            process, state, and overview models
+│   ├── types.rs            process, state, and overview models; process-tree walk
 │   ├── collector.rs        sysinfo polling, .desktop matching, filtering, sorting
 │   └── actions.rs          SIGSTOP / SIGCONT / SIGKILL
 └── views/
@@ -176,9 +205,9 @@ model/update/view pattern from `iced`. Process data comes from
 
 ## Ideas for later
 
-Per-process disk and network I/O. A collapsible parent/child process tree. Cgroup CPU
-and memory limits, so you could throttle something instead of killing it. A global
-shortcut to summon the popup.
+Per-process disk and network I/O. A collapsible parent/child process tree in the list
+itself. Cgroup CPU and memory limits, so you could throttle something instead of killing
+it. A global shortcut to summon the popup.
 
 ## Licence
 
