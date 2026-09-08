@@ -40,7 +40,7 @@ Inside the popup:
   only the processes worth worrying about.
 - **Search** across process name, full command line, and PID.
 - **Per-process actions.** Stop (`SIGSTOP`), Resume (`SIGCONT`), Kill (`SIGKILL`).
-  Which buttons appear depends on the state — a stopped process offers Resume, a zombie
+  Which buttons appear depends on the state; a stopped process offers Resume, a zombie
   only offers Kill.
 - **Kill takes the whole tree.** Killing a process kills its children and their children
   too, so you don't get orphans left running. Killing a browser or a file manager takes
