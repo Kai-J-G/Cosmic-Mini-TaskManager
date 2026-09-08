@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Mini Task Manager
+Comment=Native task manager and process monitor for COSMIC Desktop. Stop or kill unresponsive processes.
+Type=Application
+Exec=cosmic-mini-taskmanager
+Terminal=false
+Categories=Utility;System;Monitor;X-Cosmic;
+Icon=io.github.kai_j_g.CosmicMiniTaskManager
+StartupNotify=true
+NoDisplay=false
+X-CosmicApplet=true
+X-CosmicHoverPopup=Auto
+X-CosmicShrinkable=true
+X-OverflowPriority=20

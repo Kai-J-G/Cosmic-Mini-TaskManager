@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.kai_j_g.CosmicMiniTaskManager</id>
+
+  <name>Cosmic Mini Task Manager</name>
+  <summary>Native tray task manager for COSMIC Desktop</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <developer id="io.github.kai_j_g">
+    <name>Kai Gurney</name>
+  </developer>
+
+  <launchable type="desktop-id">io.github.kai_j_g.CosmicMiniTaskManager.desktop</launchable>
+
+  <description>
+    <p>
+      A native task manager applet for the COSMIC desktop environment on Kashi OS.
+      It lives in your panel, adapting dynamically to light and dark themes with frosted
+      glass blur effects.
+    </p>
+    <p>
+      Quickly inspect running applications, top CPU and memory consumers, and immediately
+      detect stopped, zombie, or non-responding processes with one-click "Stop" or "Kill" controls.
+    </p>
+  </description>
+
+  <categories>
+    <category>Utility</category>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+
+  <keywords>
+    <keyword>task</keyword>
+    <keyword>manager</keyword>
+    <keyword>process</keyword>
+    <keyword>kill</keyword>
+    <keyword>stop</keyword>
+    <keyword>monitor</keyword>
+    <keyword>applet</keyword>
+    <keyword>COSMIC</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
+  <url type="bugtracker">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager/issues</url>
+  <url type="vcs-browser">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
+
+  <releases>
+    <release version="1.0.0" date="2026-09-08">
+      <description>
+        <p>Initial release of Cosmic Mini Task Manager applet.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+</component>

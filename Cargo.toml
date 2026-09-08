@@ -1,0 +1,23 @@
+[package]
+name = "cosmic-mini-taskmanager"
+version = "1.0.0"
+edition = "2024"
+license = "MIT"
+description = "Native Mini Task Manager applet for the COSMIC desktop"
+repository = "https://github.com/Kai-J-G/Cosmic-Mini-TaskManager"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+libc = "0.2"
+sysinfo = "0.33"
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic"
+default-features = false
+features = ["applet", "applet-token", "dbus-config", "multi-window", "tokio", "wayland"]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
