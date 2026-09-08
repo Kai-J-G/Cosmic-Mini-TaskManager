@@ -16,13 +16,12 @@
 
   <description>
     <p>
-      A native task manager applet for the COSMIC desktop environment on Kashi OS.
-      It lives in your panel, adapting dynamically to light and dark themes with frosted
-      glass blur effects.
+      A native task manager applet for the COSMIC desktop environment. It lives in
+      your panel and follows the desktop's light and dark theme.
     </p>
     <p>
-      Quickly inspect running applications, top CPU and memory consumers, and immediately
-      detect stopped, zombie, or non-responding processes with one-click "Stop" or "Kill" controls.
+      Inspect running applications and the top CPU and memory consumers, spot stopped,
+      zombie, or unresponsive processes, and stop, resume, or kill them from the popup.
     </p>
   </description>
 

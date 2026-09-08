@@ -2,14 +2,14 @@
 
 use std::sync::LazyLock;
 
+use cosmic::Element;
 use cosmic::app::Task;
 use cosmic::applet::cosmic_panel_config::PanelAnchor;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Border, Color, Length, Limits, Rectangle, Shadow};
-use cosmic::surface::action::{app_popup, destroy_popup, LiveSettings};
+use cosmic::surface::action::{LiveSettings, app_popup, destroy_popup};
 use cosmic::widget::{autosize, button, column, container, icon, row, text};
-use cosmic::Element;
 
 use crate::app::{AppModel, Message};
 
@@ -19,65 +19,100 @@ static POPUP_ID: LazyLock<cosmic::widget::Id> =
     LazyLock::new(|| cosmic::widget::Id::new("cosmic-mini-taskmanager-popup"));
 
 const POPUP_WIDTH: f32 = 640.0;
+const MIN_HEIGHT: f32 = 350.0;
 const MAX_HEIGHT: f32 = 850.0;
 
-/// Generates a crisp, theme-tinted activity monitor SVG glyph for the panel button.
-fn pulse_icon_svg(stroke_color: &str, alert_color: Option<&str>) -> String {
-    if let Some(alert) = alert_color {
-        format!(
-            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="32" height="32" fill="none">
-  <rect x="0.8" y="1.8" width="14.4" height="12.4" rx="2.8" stroke="{stroke_color}" stroke-width="1.3" />
-  <path d="M 2 8.2 L 4.2 8.2 L 5.4 5.2 L 6.8 11.2 L 7.8 7.2 L 8.6 9.4 L 9.4 8.2 L 10.5 8.2" 
-        stroke="{stroke_color}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="12.5" cy="4" r="2.8" fill="{alert}" />
-  <path d="M 12.5 2.5 L 12.5 4.3 M 12.5 5.5 L 12.5 5.6" stroke="#ffffff" stroke-width="0.9" stroke-linecap="round" />
-</svg>"##
-        )
-    } else {
-        format!(
-            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="32" height="32" fill="none">
-  <rect x="0.8" y="1.8" width="14.4" height="12.4" rx="2.8" stroke="{stroke_color}" stroke-width="1.3" />
-  <path d="M 2 8.2 L 4.4 8.2 L 5.7 4.5 L 7.4 12.2 L 8.7 6.2 L 9.8 9.6 L 10.8 8.2 L 14 8.2" 
-        stroke="{stroke_color}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="10.8" cy="8.2" r="1.1" fill="{stroke_color}" />
-</svg>"##
-        )
+/// What the panel icon is currently reporting.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Pulse {
+    /// Something is stopped or hung.
+    Alert,
+    /// The machine is busy.
+    Busy,
+    Idle {
+        dark: bool,
+    },
+}
+
+/// CPU load above which the icon turns amber.
+const BUSY_CPU_PERCENT: f32 = 75.0;
+
+impl Pulse {
+    /// The four icons are built once. Re-formatting and re-parsing the SVG on
+    /// every frame showed up as steady allocation churn in the panel.
+    fn handle(self) -> icon::Handle {
+        static ALERT: LazyLock<icon::Handle> = LazyLock::new(|| svg("#ef4444", true));
+        static BUSY: LazyLock<icon::Handle> = LazyLock::new(|| svg("#f59e0b", false));
+        static DARK: LazyLock<icon::Handle> = LazyLock::new(|| svg("#38bdf8", false));
+        static LIGHT: LazyLock<icon::Handle> = LazyLock::new(|| svg("#0284c7", false));
+
+        match self {
+            Self::Alert => ALERT.clone(),
+            Self::Busy => BUSY.clone(),
+            Self::Idle { dark: true } => DARK.clone(),
+            Self::Idle { dark: false } => LIGHT.clone(),
+        }
     }
 }
 
-/// Applet's panel button view: sleek pulse icon + CPU % + alert indicator if stopped/hung.
+/// An activity-monitor glyph, optionally with a warning badge in the corner.
+fn svg(stroke: &str, badge: bool) -> icon::Handle {
+    let trace = if badge {
+        // Shortened so the trace does not run under the badge.
+        r#"M 2 8.2 L 4.2 8.2 L 5.4 5.2 L 6.8 11.2 L 7.8 7.2 L 8.6 9.4 L 9.4 8.2 L 10.5 8.2"#
+    } else {
+        r#"M 2 8.2 L 4.4 8.2 L 5.7 4.5 L 7.4 12.2 L 8.7 6.2 L 9.8 9.6 L 10.8 8.2 L 14 8.2"#
+    };
+
+    let marker = if badge {
+        format!(
+            r##"<circle cx="12.5" cy="4" r="2.8" fill="{stroke}" />
+  <path d="M 12.5 2.5 L 12.5 4.3 M 12.5 5.5 L 12.5 5.6" stroke="#ffffff" stroke-width="0.9" stroke-linecap="round" />"##
+        )
+    } else {
+        format!(r##"<circle cx="10.8" cy="8.2" r="1.1" fill="{stroke}" />"##)
+    };
+
+    let markup = format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="32" height="32" fill="none">
+  <rect x="0.8" y="1.8" width="14.4" height="12.4" rx="2.8" stroke="{stroke}" stroke-width="1.3" />
+  <path d="{trace}" stroke="{stroke}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  {marker}
+</svg>"##
+    );
+
+    icon::from_svg_bytes(markup.into_bytes())
+}
+
+/// The panel button: activity glyph plus CPU percentage, or a count of
+/// unresponsive processes when there are any.
 pub fn view(app: &AppModel) -> Element<'_, Message> {
     let sp = cosmic::theme::spacing();
     let size = app.core.applet.suggested_size(true);
-    let is_dark = app.is_dark();
 
-    let has_alert = app.overview.unresponsive_or_stopped_count > 0 && app.config.warn_unresponsive_in_panel;
-    let horizontal = app.core.applet.is_horizontal();
+    let has_alert =
+        app.overview.unresponsive_or_stopped_count > 0 && app.config.warn_unresponsive_in_panel;
 
-    let stroke_color = if has_alert {
-        "#ef4444"
-    } else if app.overview.total_cpu_percent > 75.0 {
-        "#f59e0b"
-    } else if is_dark {
-        "#38bdf8"
+    let pulse = if has_alert {
+        Pulse::Alert
+    } else if app.overview.total_cpu_percent > BUSY_CPU_PERCENT {
+        Pulse::Busy
     } else {
-        "#0284c7"
+        Pulse::Idle {
+            dark: app.is_dark(),
+        }
     };
 
-    let alert_color = if has_alert { Some("#ef4444") } else { None };
-    let svg_code = pulse_icon_svg(stroke_color, alert_color);
+    let icon_el = icon::icon(pulse.handle()).size(size.0);
 
-    let icon_el = icon::icon(icon::from_svg_bytes(svg_code.into_bytes()))
-        .size(size.0);
-
-    let label_str = if has_alert {
+    let label = if has_alert {
         format!("!{}", app.overview.unresponsive_or_stopped_count)
     } else {
         format!("{:.0}%", app.overview.total_cpu_percent)
     };
+    let label_el = text::body(label).size(12);
 
-    let label_el = text::body(label_str).size(12);
-
+    let horizontal = app.core.applet.is_horizontal();
     let content: Element<'_, Message> = if horizontal {
         row![icon_el, label_el]
             .spacing(sp.space_xxs)
@@ -94,7 +129,11 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     let is_open = app.popup.is_some();
 
     let button = button::custom(content)
-        .padding(if horizontal { [0, padding] } else { [padding, 0] })
+        .padding(if horizontal {
+            [0, padding]
+        } else {
+            [padding, 0]
+        })
         .class(cosmic::theme::Button::AppletIcon)
         .on_press_with_rectangle(move |offset, bounds| {
             if is_open {
@@ -118,18 +157,16 @@ fn open_popup(offset: cosmic::iced::Vector, bounds: Rectangle) -> cosmic::surfac
             app.popup = Some(id);
 
             let mut settings = app.core.applet.get_popup_settings(
-                app.core.main_window_id().expect("applet always has a main window"),
+                app.core
+                    .main_window_id()
+                    .expect("applet always has a main window"),
                 id,
                 Some((POPUP_WIDTH as u32, 600)),
                 None,
                 None,
             );
 
-            settings.positioner.size_limits = Limits::NONE
-                .min_height(350.0)
-                .min_width(POPUP_WIDTH)
-                .max_width(POPUP_WIDTH)
-                .max_height(MAX_HEIGHT);
+            settings.positioner.size_limits = popup_limits();
             settings.positioner.anchor_rect = Rectangle {
                 x: (bounds.x - offset.x) as i32,
                 y: (bounds.y - offset.y) as i32,
@@ -195,14 +232,17 @@ pub fn popup_container<'a>(
             .align_y(align_y),
         POPUP_ID.clone(),
     )
-    .limits(
-        Limits::NONE
-            .min_height(350.0)
-            .min_width(POPUP_WIDTH)
-            .max_width(POPUP_WIDTH)
-            .max_height(MAX_HEIGHT),
-    )
+    .limits(popup_limits())
     .into()
+}
+
+/// The popup is a fixed width and grows only vertically, within bounds.
+fn popup_limits() -> Limits {
+    Limits::NONE
+        .min_height(MIN_HEIGHT)
+        .min_width(POPUP_WIDTH)
+        .max_width(POPUP_WIDTH)
+        .max_height(MAX_HEIGHT)
 }
 
 pub fn destroy(id: Id) -> Task<Message> {

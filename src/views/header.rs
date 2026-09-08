@@ -1,15 +1,15 @@
 //! Header view with system resource gauges (CPU & RAM meters) and quick actions.
 
+use cosmic::Element;
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{button, column, container, icon, progress_bar, row, space, text};
-use cosmic::Element;
 
 use crate::app::{AppModel, Message};
 use crate::process::format_bytes;
 
 pub fn view(app: &AppModel) -> Element<'_, Message> {
     let sp = cosmic::theme::spacing();
-    
+
     let overview = &app.overview;
 
     // Header Title & Controls Row
@@ -18,7 +18,10 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .symbolic(true)
         .icon();
     let title_text = text::title3(crate::fl!("app-title"));
-    let proc_badge = text::caption(crate::fl!("process-count", count = overview.total_processes));
+    let proc_badge = text::caption(crate::fl!(
+        "process-count",
+        count = overview.total_processes
+    ));
 
     let title_row = row![title_icon, title_text, proc_badge]
         .spacing(sp.space_xs)
@@ -38,13 +41,9 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         "emblem-system-symbolic"
     };
 
-    let settings_btn = button::icon(
-        icon::from_name(settings_icon)
-            .size(16)
-            .symbolic(true),
-    )
-    .on_press(Message::ToggleSettings)
-    .class(cosmic::theme::Button::Text);
+    let settings_btn = button::icon(icon::from_name(settings_icon).size(16).symbolic(true))
+        .on_press(Message::ToggleSettings)
+        .class(cosmic::theme::Button::Text);
 
     let top_bar = row![
         title_row,
@@ -58,8 +57,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     let cpu_prog = (overview.total_cpu_percent / 100.0).clamp(0.0, 1.0);
     let cpu_percent_str = format!("{:.1}", overview.total_cpu_percent);
     let cpu_label = text::caption(crate::fl!("cpu-label", percent = cpu_percent_str));
-    let cpu_bar = progress_bar::determinate_linear(cpu_prog)
-        .width(Length::Fill);
+    let cpu_bar = progress_bar::determinate_linear(cpu_prog).width(Length::Fill);
 
     let cpu_card = column![cpu_label, cpu_bar].spacing(sp.space_xxs);
 
@@ -73,8 +71,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         total = ram_total,
         percent = ram_percent_str
     ));
-    let ram_bar = progress_bar::determinate_linear(ram_prog)
-        .width(Length::Fill);
+    let ram_bar = progress_bar::determinate_linear(ram_prog).width(Length::Fill);
 
     let ram_card = column![ram_label, ram_bar].spacing(sp.space_xxs);
 

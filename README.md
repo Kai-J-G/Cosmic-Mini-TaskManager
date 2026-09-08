@@ -1,180 +1,192 @@
 # Cosmic Mini Task Manager
 
-Native task manager and system resource applet for the **COSMIC Desktop Environment** running on **Kashi OS** and Arch-based Linux distributions.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/Kai-J-G/Cosmic-Mini-TaskManager/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Languages](https://img.shields.io/badge/languages-8-orange)](#languages)
+[![COSMIC](https://img.shields.io/badge/desktop-COSMIC-purple)](https://system76.com/cosmic)
 
-Designed to sit discreetly in your COSMIC panel or dock, the applet opens a theme-adapted tray popup featuring frosted glass subsurface blur effects. It provides at-a-glance insight into running applications and high-resource processes, with proactive detection and immediate one-click controls to **Stop, Resume, or Kill** unresponsive or stopped tasks.
+A small process monitor that lives in the COSMIC panel. Click it and you get CPU and
+memory usage, a list of what's running, and buttons to stop, resume, or kill anything
+misbehaving — without opening a full system monitor or reaching for `htop`.
 
----
+It exists because the thing I actually wanted from a task manager, 95% of the time,
+was "which process is eating my CPU, and can I kill it right now".
 
-## 📸 Showcase
+![The popup, showing CPU and RAM meters, filter tabs, and process rows](data/screenshots/task-manager-overview.png)
 
-![COSMIC Mini Task Manager Overview](data/screenshots/task-manager-overview.png)
+## What it does
 
-*The 640px frosted glass popup displaying live CPU & RAM gauges, search bar, category tabs, and tabular process rows with Stop/Kill controls.*
+The panel button shows current CPU usage. It goes amber past 75%, and if something is
+stopped or unresponsive it turns red and shows a count instead — so you notice without
+opening anything.
 
----
+Inside the popup:
 
-## ✨ Features
+- **CPU and memory meters** for the whole system, refreshed on a timer.
+- **Five tabs.** *All* and *Apps* sort by CPU but float anything stopped or hung to the
+  top. *Top CPU* and *Top RAM* sort purely by that one column. *Stopped / Hung* shows
+  only the processes worth worrying about.
+- **Search** across process name, full command line, and PID.
+- **Per-process actions.** Stop (`SIGSTOP`), Resume (`SIGCONT`), Kill (`SIGKILL`).
+  Which buttons appear depends on the state — a stopped process offers Resume, a zombie
+  only offers Kill.
+- **Kill All**, in the warning banner, for when several things have wedged at once.
 
-- **🎨 Native COSMIC Look & Feel**:
-  - Automatically adapts to desktop dark/light mode preference or explicit override.
-  - Native frosted glass blur (`LiveSettings { blur: Some(true) }`) rendered via `cosmic-comp`.
-  - Consistent typography, spacing, and styling using COSMIC theme tokens.
-  - Dynamic panel activity pulse icon that shifts hue (cyan → amber → red) based on system load and alert conditions.
+GUI applications are matched against installed `.desktop` files, so they show their
+real name and icon instead of a binary name. Everything else gets a generic icon.
 
-- **🚨 Proactive Detection of Stopped & Hung Processes**:
-  - Immediate identification of stopped (`SIGSTOP` / `ProcessStatus::Stop`), zombie (`Z`), or disk-sleep (`D` state / hung I/O) processes.
-  - Debounced polling to eliminate false-positive flicker on transient mutex waits.
-  - Optional warning badge in the panel button (`!N`) when any process is unresponsive.
-  - High-visibility alert banner inside the popup with a 1-click **Kill All** button.
+## Installing
 
-- **⚡ "Stop or Kill" Controls**:
-  - **Stop**: Pauses the process via `SIGSTOP`.
-  - **Resume**: Resumes a stopped process via `SIGCONT`.
-  - **Kill**: Force terminates runaway processes via `SIGKILL`.
-  - **Kill All**: Bulk terminates all unresponsive or stopped processes at once.
-
-- **📊 Resource Gauges & Categorized Navigation**:
-  - Live linear CPU & RAM utilization progress meters.
-  - Quick category tabs: **All**, **Apps** (desktop GUI applications scanned from `.desktop` files), **Top CPU**, **Top RAM**, and **Stopped / Hung**.
-  - Real-time instant search by application name, executable path, or PID.
-  - Total order sorting algorithm with PID tiebreakers to guarantee stable 60fps rendering without jitter.
-
-- **⚙️ Configurable Settings**:
-  - Appearance preference: System, Dark, or Light.
-  - Configurable refresh interval: 1s, 2s, or 5s.
-  - Toggle panel alert indicator.
-  - Settings persisted across reboots via `cosmic-config`.
-
----
-
-## 📦 Installation Guide
-
-### Option 1: Arch Linux / CachyOS (`PKGBUILD`)
-
-If you are running Arch Linux, CachyOS, or any Arch-based distribution, a native `PKGBUILD` is included:
+### Arch, CachyOS, and other Arch-based distros
 
 ```bash
-# Clone the repository
 git clone https://github.com/Kai-J-G/Cosmic-Mini-TaskManager.git
 cd Cosmic-Mini-TaskManager
-
-# Build and install the package
 makepkg -si
 ```
 
-This compiles an optimized release binary and installs all desktop entries, AppStream metadata, scalable icons, and licenses into `/usr`.
+This builds a release binary and installs it, plus the desktop entry, AppStream
+metadata, icons, and licence, under `/usr`.
 
----
+### With `just`
 
-### Option 2: Using the `just` Command Runner
-
-For quick local user installation without root privileges:
+Installs into `~/.local`, no root needed:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Kai-J-G/Cosmic-Mini-TaskManager.git
-cd Cosmic-Mini-TaskManager
-
-# Build and install to ~/.local
 just install
 ```
 
-To install system-wide using `just`:
+System-wide instead:
+
 ```bash
 sudo just prefix=/usr install
 ```
 
-To uninstall at any time:
+And to remove it:
+
 ```bash
 just uninstall
 ```
 
----
-
-### Option 3: Manual Build with Cargo
+### With cargo directly
 
 ```bash
 cargo build --release
-
-# Install binary
 install -Dm0755 target/release/cosmic-mini-taskmanager ~/.local/bin/cosmic-mini-taskmanager
-
-# Install desktop entry and icons
 install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.desktop ~/.local/share/applications/io.github.kai_j_g.CosmicMiniTaskManager.desktop
 install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml ~/.local/share/metainfo/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml
-install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg
 install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager.svg
+install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg
 ```
 
----
+## Adding it to the panel
 
-## 🖥️ Adding to the COSMIC Panel
+Open COSMIC Settings, then **Desktop → Panel → Applets**, click **Add Applet**, and pick
+**Mini Task Manager**. Drag it wherever you want it.
 
-Once installed, add the applet to your desktop panel:
+You can also just run `cosmic-mini-taskmanager` from a terminal, which gives you the
+panel button as a floating window — useful for checking a build, less useful day to day.
 
-1. Open **COSMIC Settings** (or press `Super` and search for *Settings*).
-2. Go to **Desktop** -> **Panel** -> **Applets**.
-3. Click **Add Applet** (+).
-4. Locate **Mini Task Manager** in the list and click **Add**.
-5. Drag it to your desired position (Left, Center, or Right wing).
+## Settings
 
-Alternatively, launch it standalone from your terminal or app launcher:
+Click the gear in the popup header:
+
+| Setting | Options | Default |
+| --- | --- | --- |
+| Appearance | System, Dark, Light | System |
+| Refresh interval | 1s, 2s, 5s | 2s |
+| Panel warning indicator | on / off | on |
+
+Settings are stored via `cosmic-config`, so they survive restarts. Picking Dark or Light
+pins the popup to that theme even if you later flip the desktop's own light/dark switch;
+System follows the desktop.
+
+## Languages
+
+Eight languages, as embedded Fluent catalogs — no runtime files to install. The desktop's
+language is picked up automatically, falling back to English.
+
+English · Français · Deutsch · Español · Italiano · Português · 日本語 · 简体中文
+
+Translations live in [`i18n/`](i18n). To add one, copy `i18n/en/cosmic_mini_taskmanager.ftl`
+into a new locale directory and translate the values. A test asserts that every catalog
+defines every message English does, so a partial translation fails `cargo test` rather
+than falling back to English mid-sentence.
+
+## Things worth knowing
+
+- **You can only signal your own processes.** Anything owned by root or another user
+  returns "Operation not permitted", which shows up in the status line at the foot of
+  the popup. The applet doesn't ask for privilege escalation.
+- **Kill is `SIGKILL`.** There's no "terminate gracefully first" step, so an application
+  killed this way will not save anything. That's deliberate — it's the button you press
+  when asking nicely has already failed.
+- **"Hung" means two consecutive polls in uninterruptible sleep.** A single poll in `D`
+  state is just a normal disk read, so a process has to stay there to get flagged.
+- **The list renders at most 80 rows.** The toolkit builds every widget in the tree each
+  frame, so an unbounded list would cost real frame time on a machine with hundreds of
+  processes. The tabs and the search box are how you reach the rest.
+- **Kernel threads are hidden.** They have no command line and aren't yours to manage.
+- Memory is reported in binary units (MiB, GiB), matching what the kernel reports.
+- Swap isn't shown anywhere.
+
+## Building from source
+
+Needs a Rust toolchain and the usual COSMIC build dependencies.
+
 ```bash
-cosmic-mini-taskmanager
+cargo build --release
 ```
 
----
+```bash
+cargo test
+```
 
-## 🏗️ Project Architecture
+The test suite covers signal dispatch, filtering and sort ordering, byte formatting,
+translation completeness, and building the full widget tree for every tab against
+deliberately hostile process data — long command lines, multi-byte characters, `NaN` CPU
+values, and empty names.
+
+## Layout
 
 ```
 src/
-├── main.rs              # Application entry point & runtime runner
-├── app.rs               # Elm-style Model-View-Update (MVU) state machine & subscriptions
-├── config.rs            # Persistent user configuration (cosmic-config)
-├── localize.rs          # Fluent and i18n-embed localization loader & macros
+├── main.rs                 entry point
+├── app.rs                  state, update loop, subscriptions
+├── config.rs               persisted settings
+├── localize.rs             Fluent catalog loading
 ├── process/
-│   ├── mod.rs           # Process subsystem re-exports
-│   ├── types.rs         # ProcessItem, ProcessState, and SystemOverview models
-│   ├── collector.rs     # sysinfo poller, desktop app mapper & debounced status tracking
-│   └── actions.rs       # POSIX signal handlers (SIGSTOP, SIGCONT, SIGKILL)
+│   ├── types.rs            process, state, and overview models
+│   ├── collector.rs        sysinfo polling, .desktop matching, filtering, sorting
+│   └── actions.rs          SIGSTOP / SIGCONT / SIGKILL
 └── views/
-    ├── mod.rs           # Main popup view composition
-    ├── panel.rs         # Panel icon button, Wayland subsurface & autosize popup limits
-    ├── header.rs        # CPU/RAM utilization progress bars & header controls
-    ├── filter_bar.rs    # Search bar & category filter pills
-    ├── alert_banner.rs  # High-visibility warning alert with "Kill All" action
-    ├── process_row.rs   # Tabular process row with formatted metrics & Stop/Kill buttons
-    ├── settings.rs      # User settings panel
-    └── style.rs         # Theme-aware container & pill badge styling helpers
-
-i18n/                    # Fluent (.ftl) translation catalogs (en, fr, de, es, it, pt, ja, zh-Hans)
+    ├── mod.rs              popup composition
+    ├── panel.rs            panel button and popup surface
+    ├── header.rs           CPU and RAM meters
+    ├── filter_bar.rs       search and tabs
+    ├── alert_banner.rs     warning banner and Kill All
+    ├── process_row.rs      one process row
+    ├── settings.rs         settings panel
+    └── style.rs            container and badge styling
 ```
 
-- **State Management**: Built on the Elm Model-View-Update (MVU) pattern provided by `libcosmic` / `iced`.
-- **Debounced Process Monitor**: Processes in uninterruptible sleep (`D`) are debounced across multiple polling ticks to distinguish momentary I/O flushes from actual hung states.
-- **Strict Total Order**: Sorting avoids unstable float comparisons by using integer bucketing and PID tiebreakers, guaranteeing zero crashes and predictable sorting.
-- **Embedded Localization**: Compiled catalogs with zero runtime file dependencies via `rust-embed` and automatic system language selection.
+Built on [libcosmic](https://github.com/pop-os/libcosmic), which means the Elm-style
+model/update/view pattern from `iced`. Process data comes from
+[sysinfo](https://github.com/GuillaumeGomez/sysinfo).
 
----
+## Ideas for later
 
-## 🗺️ Roadmap
+Per-process disk and network I/O. A collapsible parent/child process tree. Cgroup CPU
+and memory limits, so you could throttle something instead of killing it. A global
+shortcut to summon the popup.
 
-- [x] **Native COSMIC Applet UI**: Frosted glass tray popup with dark/light theme switching.
-- [x] **Proactive Hung/Stopped Detection**: Immediate alerts for paused or non-responsive tasks.
-- [x] **One-Click Actions**: Individual Stop/Resume/Kill and bulk "Kill All".
-- [x] **Resource Gauges**: Real-time CPU and RAM utilization meters.
-- [x] **Application Categorization**: Separation of desktop GUI apps from background daemons.
-- [x] **Arch Packaging**: `PKGBUILD` and `justfile` packaging support.
-- [x] **Internationalization (i18n)**: Native localization support via `fluent` and `i18n-embed` (en, fr, de, es, it, pt, ja, zh-Hans).
-- [ ] **Network & Disk I/O Gauges**: Per-process read/write throughput and network transmission metrics.
-- [ ] **Process Tree Hierarchy**: Collapsible tree view showing parent/child process relationships.
-- [ ] **Cgroups Resource Limits**: Ability to throttle CPU shares or set memory limits on specific process cgroups.
-- [ ] **Global Shortcut**: Configurable keybinding to summon the mini task manager popup from anywhere.
+## Licence
 
----
+MIT — see [LICENSE](LICENSE).
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+Dependencies keep their own licences. The two that matter most here are
+[libcosmic](https://github.com/pop-os/libcosmic), which is **MPL-2.0**, and
+[sysinfo](https://github.com/GuillaumeGomez/sysinfo), which is MIT. MPL-2.0 is
+file-level copyleft: linking it into this MIT-licensed binary is fine, but if you
+modify libcosmic's own source you have to publish those changes. `cargo tree` will
+show you the full dependency set.
