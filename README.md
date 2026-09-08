@@ -11,7 +11,7 @@
 ![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
 ![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
 
-🇬🇧 · 🇫🇷 · 🇩🇪 · 🇪🇸 · 🇮🇹 · 🇵🇹 · 🇯🇵 · 🇨🇳
+🇬🇧
 
 <img src="data/screenshots/task-manager-overview.png" width="620" alt="The popup, showing CPU and RAM meters, filter tabs, and process rows">
 
