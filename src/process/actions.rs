@@ -1,17 +1,18 @@
 //! Process signalling: stop (`SIGSTOP`), resume (`SIGCONT`), kill (`SIGKILL`).
 
+use super::host;
 use libc::{SIGCONT, SIGKILL, SIGSTOP, c_int, kill, pid_t};
 
 pub fn stop_process(pid: u32) -> Result<(), String> {
-    send_signal(pid, SIGSTOP)
+    send_signal(pid, SIGSTOP, "STOP")
 }
 
 pub fn resume_process(pid: u32) -> Result<(), String> {
-    send_signal(pid, SIGCONT)
+    send_signal(pid, SIGCONT, "CONT")
 }
 
 pub fn kill_process(pid: u32) -> Result<(), String> {
-    send_signal(pid, SIGKILL)
+    send_signal(pid, SIGKILL, "KILL")
 }
 
 /// Kills every listed PID, returning how many signals were delivered.
@@ -24,13 +25,23 @@ pub fn kill_all(pids: &[u32]) -> usize {
 
 /// The caller pairs this error with the action it attempted, so the message
 /// here is just the reason (`Operation not permitted`, `No such process`, ...).
-fn send_signal(pid: u32, sig: c_int) -> Result<(), String> {
+fn send_signal(pid: u32, sig: c_int, host_name: &str) -> Result<(), String> {
     // `kill` reads non-positive PIDs as "the caller's process group" (0) or
     // "every process we may signal" (-1). Our PIDs come from sysinfo and are
     // always real, but a bad value must never be allowed to reach the syscall.
     let target = pid_t::try_from(pid).unwrap_or(-1);
     if target <= 0 {
         return Err(format!("Invalid PID {pid}"));
+    }
+
+    // In a Flatpak sandbox our `kill` cannot reach host PIDs at all, so it
+    // has to go through the session helper.
+    if host::is_sandboxed() {
+        return match host::signal(&[pid], host_name) {
+            Ok(1) => Ok(()),
+            Ok(_) => Err("Operation not permitted".to_string()),
+            Err(error) => Err(error.to_string()),
+        };
     }
 
     // SAFETY: `kill` has no memory-safety preconditions, and `target` is a
@@ -80,7 +91,7 @@ mod tests {
     #[test]
     fn broadcast_pids_are_rejected() {
         for pid in [0, u32::MAX, i32::MAX as u32 + 1] {
-            let error = send_signal(pid, SIGCONT).expect_err("should be rejected");
+            let error = send_signal(pid, SIGCONT, "CONT").expect_err("should be rejected");
             assert_eq!(error, format!("Invalid PID {pid}"));
         }
     }
