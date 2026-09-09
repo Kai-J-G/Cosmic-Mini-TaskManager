@@ -21,7 +21,7 @@
 
 A small process monitor that lives in the COSMIC panel. Click it and you get CPU and
 memory usage, a list of what's running, and buttons to stop, resume, or kill anything
-misbehaving — without opening a full system monitor or reaching for `htop`.
+misbehaving, without opening a full system monitor or reaching for `htop`.
 
 It exists because the thing I actually wanted from a task manager, 95% of the time,
 was "which process is eating my CPU, and can I kill it right now".
@@ -29,7 +29,7 @@ was "which process is eating my CPU, and can I kill it right now".
 ## What it does
 
 The panel button shows current CPU usage. It goes amber past 75%, and if something is
-stopped or unresponsive it turns red and shows a count instead — so you notice without
+stopped or unresponsive it turns red and shows a count instead, so you notice without
 opening anything.
 
 Inside the popup:
@@ -100,7 +100,7 @@ Open COSMIC Settings, then **Desktop → Panel → Applets**, click **Add Applet
 **Mini Task Manager**. Drag it wherever you want it.
 
 You can also just run `cosmic-mini-taskmanager` from a terminal, which gives you the
-panel button as a floating window — useful for checking a build, less useful day to day.
+panel button as a floating window. Useful for checking a build, less useful day to day.
 
 ## Settings
 
@@ -118,7 +118,7 @@ System follows the desktop.
 
 ## Languages
 
-Eight languages, as embedded Fluent catalogs — no runtime files to install. The desktop's
+Eight languages, as embedded Fluent catalogs, with no runtime files to install. The desktop's
 language is picked up automatically, falling back to English.
 
 English · Français · Deutsch · Español · Italiano · Português · 日本語 · 简体中文
@@ -134,7 +134,7 @@ than falling back to English mid-sentence.
   returns "Operation not permitted", which shows up in the status line at the foot of
   the popup. The applet doesn't ask for privilege escalation.
 - **Kill is `SIGKILL`, and it takes descendants with it.** There's no "terminate
-  gracefully first" step, so nothing killed this way saves its work. That's deliberate —
+  gracefully first" step, so nothing killed this way saves its work. That's deliberate:
   it's the button you press when asking nicely has already failed. The descendant list is
   captured before the root dies, since children are reparented to init the moment it
   does. Note that killing something far up the tree takes everything under it: kill your
@@ -144,7 +144,7 @@ than falling back to English mid-sentence.
   the figure in the header. If you're used to `htop`'s per-core numbers, multiply by your
   core count.
 - **Threads aren't listed separately.** `sysinfo` reports them alongside processes on
-  Linux, and a userland thread carries its process's command line — so they used to
+  Linux, and a userland thread carries its process's command line, so they used to
   appear as duplicate rows with their CPU counted twice.
 - **"Hung" means two consecutive polls in uninterruptible sleep.** A single poll in `D`
   state is just a normal disk read, so a process has to stay there to get flagged.
@@ -169,7 +169,7 @@ cargo test
 
 The test suite covers signal dispatch, process-tree walking, filtering and sort ordering,
 byte formatting, translation completeness, and building the full widget tree for every tab
-against deliberately hostile process data — long command lines, multi-byte characters,
+against deliberately hostile process data: long command lines, multi-byte characters,
 `NaN` CPU values, and empty names.
 
 Two tests spawn a real three-level process tree: one asserts that killing only the root
@@ -211,7 +211,7 @@ it. A global shortcut to summon the popup.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 Dependencies keep their own licences. The two that matter most here are
 [libcosmic](https://github.com/pop-os/libcosmic), which is **MPL-2.0**, and
