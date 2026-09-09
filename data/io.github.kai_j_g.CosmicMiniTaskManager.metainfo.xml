@@ -47,7 +47,7 @@
   <url type="vcs-browser">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
 
   <releases>
-    <release version="1.1.0" date="2026-09-08">
+    <release version="1.1.0" date="2026-09-09">
       <description>
         <p>Killing a process now also kills its children, so nothing is left orphaned.</p>
         <ul>
