@@ -37,7 +37,7 @@ pub fn localizer() -> Box<dyn Localizer> {
 pub fn init() {
     let requested = i18n_embed::DesktopLanguageRequester::requested_languages();
     if let Err(error) = localizer().select(&requested) {
-        eprintln!("cosmic-mini-taskmanager: could not load language: {error}");
+        eprintln!("cosmic-ext-mini-taskmanager: could not load language: {error}");
     }
 }
 
@@ -49,7 +49,7 @@ mod tests {
     /// Message ids defined in a language's catalog, read straight from the
     /// embedded `.ftl` so this checks the shipped files rather than the loader.
     fn message_ids(lang: &str) -> Vec<String> {
-        let path = format!("{lang}/cosmic_mini_taskmanager.ftl");
+        let path = format!("{lang}/cosmic_ext_mini_taskmanager.ftl");
         let file = Localizations::get(&path).expect("catalog is embedded");
         let text = std::str::from_utf8(&file.data).expect("catalog is UTF-8");
 

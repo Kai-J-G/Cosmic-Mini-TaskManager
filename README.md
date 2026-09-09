@@ -2,12 +2,14 @@
 
 <img src="data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg" width="180" alt="Cosmic Mini Task Manager icon">
 
-# COSMIC MINI TASK MANAGER
+# MINI TASK MANAGER
 
-**Find what's eating your CPU and kill it, from the COSMIC panel.**
+**Find what's eating your CPU and kill it, from the panel.**
+
+An applet for the COSMIC™ desktop.
 
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
-![release v1.1.0](https://img.shields.io/badge/release-v1.1.0-brightgreen)
+![release v1.1.0](https://img.shields.io/badge/release-v1.2.0-brightgreen)
 ![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
 ![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
 
@@ -87,7 +89,7 @@ just uninstall
 
 ```bash
 cargo build --release
-install -Dm0755 target/release/cosmic-mini-taskmanager ~/.local/bin/cosmic-mini-taskmanager
+install -Dm0755 target/release/cosmic-ext-mini-taskmanager ~/.local/bin/cosmic-ext-mini-taskmanager
 install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.desktop ~/.local/share/applications/io.github.kai_j_g.CosmicMiniTaskManager.desktop
 install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml ~/.local/share/metainfo/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml
 install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager.svg
@@ -99,7 +101,7 @@ install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg 
 Open COSMIC Settings, then **Desktop → Panel → Applets**, click **Add Applet**, and pick
 **Mini Task Manager**. Drag it wherever you want it.
 
-You can also just run `cosmic-mini-taskmanager` from a terminal, which gives you the
+You can also just run `cosmic-ext-mini-taskmanager` from a terminal, which gives you the
 panel button as a floating window. Useful for checking a build, less useful day to day.
 
 ## Settings
@@ -123,7 +125,7 @@ language is picked up automatically, falling back to English.
 
 English · Français · Deutsch · Español · Italiano · Português · 日本語 · 简体中文
 
-Translations live in [`i18n/`](i18n). To add one, copy `i18n/en/cosmic_mini_taskmanager.ftl`
+Translations live in [`i18n/`](i18n). To add one, copy `i18n/en/cosmic_ext_mini_taskmanager.ftl`
 into a new locale directory and translate the values. A test asserts that every catalog
 defines every message English does, so a partial translation fails `cargo test` rather
 than falling back to English mid-sentence.
@@ -212,6 +214,12 @@ it. A global shortcut to summon the popup.
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+COSMIC™ is a trademark of System76. This is a third-party applet, not official
+COSMIC software and not endorsed by System76. It uses the `cosmic-ext-` package
+namespace that System76's
+[trademark policy](https://github.com/pop-os/cosmic-epoch/blob/master/TRADEMARK.md)
+asks third-party developers to use.
 
 Dependencies keep their own licences. The two that matter most here are
 [libcosmic](https://github.com/pop-os/libcosmic), which is **MPL-2.0**, and

@@ -2,8 +2,8 @@
 <component type="desktop-application">
   <id>io.github.kai_j_g.CosmicMiniTaskManager</id>
 
-  <name>Cosmic Mini Task Manager</name>
-  <summary>Native tray task manager for COSMIC Desktop</summary>
+  <name>Mini Task Manager</name>
+  <summary>Task manager applet for the COSMIC™ desktop</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
@@ -16,7 +16,7 @@
 
   <description>
     <p>
-      A native task manager applet for the COSMIC desktop environment. It lives in
+      A task manager applet for the COSMIC™ desktop environment. It lives in
       your panel and follows the desktop's light and dark theme.
     </p>
     <p>

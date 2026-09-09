@@ -16,7 +16,7 @@ use crate::app::{AppModel, Message};
 static PANEL_ID: LazyLock<cosmic::widget::Id> =
     LazyLock::new(|| cosmic::widget::Id::new("autosize-main"));
 static POPUP_ID: LazyLock<cosmic::widget::Id> =
-    LazyLock::new(|| cosmic::widget::Id::new("cosmic-mini-taskmanager-popup"));
+    LazyLock::new(|| cosmic::widget::Id::new("cosmic-ext-mini-taskmanager-popup"));
 
 const POPUP_WIDTH: f32 = 640.0;
 const MIN_HEIGHT: f32 = 350.0;

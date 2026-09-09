@@ -68,7 +68,7 @@ impl ProcessCollector {
                     // Fall through to sysinfo rather than showing nothing. The
                     // list will be near-empty, which is a visible symptom, and
                     // better than a blank popup with no explanation.
-                    eprintln!("cosmic-mini-taskmanager: host poll failed: {error}");
+                    eprintln!("cosmic-ext-mini-taskmanager: host poll failed: {error}");
                 }
             }
         }
@@ -809,46 +809,37 @@ mod tests {
 mod desktop_dir_tests {
     use super::*;
 
-    /// The scan must follow XDG_DATA_DIRS, which is how the Flatpak build
-    /// reaches the host's applications via /run/host.
+    /// One test, because `XDG_DATA_DIRS` is process-wide state: split across
+    /// `#[test]` functions these race each other and fail intermittently.
     #[test]
-    fn desktop_dirs_follow_xdg_data_dirs() {
-        // SAFETY: single-threaded test; no other thread reads the environment.
+    fn desktop_dirs_follow_the_xdg_spec() {
+        // SAFETY: the env is only touched here, and this is the sole test in
+        // this module, so no other thread reads it concurrently.
         unsafe {
             std::env::set_var("XDG_DATA_DIRS", "/run/host/usr/share:/app/share");
         }
         let dirs = desktop_dirs();
-        unsafe {
-            std::env::remove_var("XDG_DATA_DIRS");
-        }
-
+        // This is how the Flatpak build reaches the host's applications.
         assert!(dirs.contains(&PathBuf::from("/run/host/usr/share/applications")));
         assert!(dirs.contains(&PathBuf::from("/app/share/applications")));
-    }
 
-    #[test]
-    fn desktop_dirs_fall_back_to_the_spec_default() {
+        // Duplicated entries must not mean scanning a directory twice.
+        unsafe {
+            std::env::set_var("XDG_DATA_DIRS", "/usr/share:/usr/share");
+        }
+        let dirs = desktop_dirs();
+        let seen = dirs
+            .iter()
+            .filter(|d| *d == &PathBuf::from("/usr/share/applications"))
+            .count();
+        assert_eq!(seen, 1);
+
+        // Unset falls back to the spec default.
         unsafe {
             std::env::remove_var("XDG_DATA_DIRS");
         }
         let dirs = desktop_dirs();
         assert!(dirs.contains(&PathBuf::from("/usr/share/applications")));
         assert!(dirs.contains(&PathBuf::from("/usr/local/share/applications")));
-    }
-
-    #[test]
-    fn desktop_dirs_are_deduplicated() {
-        unsafe {
-            std::env::set_var("XDG_DATA_DIRS", "/usr/share:/usr/share");
-        }
-        let dirs = desktop_dirs();
-        unsafe {
-            std::env::remove_var("XDG_DATA_DIRS");
-        }
-        let count = dirs
-            .iter()
-            .filter(|d| *d == &PathBuf::from("/usr/share/applications"))
-            .count();
-        assert_eq!(count, 1);
     }
 }
