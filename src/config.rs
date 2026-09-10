@@ -3,7 +3,7 @@
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
 use serde::{Deserialize, Serialize};
 
-pub const APP_ID: &str = "io.github.kai_j_g.CosmicMiniTaskManager";
+pub const APP_ID: &str = "io.github.kai_j_g.MiniTaskManager";
 pub const CONFIG_VERSION: u64 = 1;
 
 /// Whether the popup follows the desktop theme or is pinned to one appearance.

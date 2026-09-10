@@ -1,5 +1,5 @@
 name := 'cosmic-ext-mini-taskmanager'
-export APPID := 'io.github.kai_j_g.CosmicMiniTaskManager'
+export APPID := 'io.github.kai_j_g.MiniTaskManager'
 
 rootdir := env_var_or_default("DESTDIR", "")
 prefix := env_var_or_default("PREFIX", if rootdir != "" { "/usr" } else { env_var('HOME') / '.local' })

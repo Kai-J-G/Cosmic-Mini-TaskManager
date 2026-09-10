@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.kai_j_g.CosmicMiniTaskManager</id>
+  <id>io.github.kai_j_g.MiniTaskManager</id>
 
   <name>Mini Task Manager</name>
   <summary>Task manager applet for the COSMIC™ desktop</summary>
@@ -12,7 +12,7 @@
     <name>Kai Gurney</name>
   </developer>
 
-  <launchable type="desktop-id">io.github.kai_j_g.CosmicMiniTaskManager.desktop</launchable>
+  <launchable type="desktop-id">io.github.kai_j_g.MiniTaskManager.desktop</launchable>
 
   <description>
     <p>
@@ -47,6 +47,13 @@
   <url type="vcs-browser">https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager</url>
 
   <releases>
+    <release version="1.3.0" date="2026-09-10">
+      <description>
+        <p>The application ID no longer uses the COSMIC name, at System76's request.
+           Settings and panel placement are reset by this change; re-add the applet
+           and set your preferences again.</p>
+      </description>
+    </release>
     <release version="1.2.1" date="2026-09-10">
       <description>
         <p>Project renamed to cosmic-ext-mini-taskmanager to follow System76's COSMIC
