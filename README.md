@@ -9,7 +9,7 @@
 An applet for the COSMIC™ desktop.
 
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
-![release v1.1.0](https://img.shields.io/badge/release-v1.2.0-brightgreen)
+![release v1.2.1](https://img.shields.io/badge/release-v1.2.1-brightgreen)
 ![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
 ![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
 
@@ -57,8 +57,8 @@ real name and icon instead of a binary name. Everything else gets a generic icon
 ### Arch, CachyOS, and other Arch-based distros
 
 ```bash
-git clone https://github.com/Kai-J-G/Cosmic-Mini-TaskManager.git
-cd Cosmic-Mini-TaskManager
+git clone https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager.git
+cd cosmic-ext-mini-taskmanager
 makepkg -si
 ```
 

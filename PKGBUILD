@@ -1,10 +1,10 @@
 # Maintainer: Kai <https://github.com/Kai-J-G>
 pkgname=cosmic-ext-mini-taskmanager
-pkgver=1.2.0
+pkgver=1.2.1
 pkgrel=1
 pkgdesc="Native mini task manager applet for the COSMIC Desktop Environment"
 arch=('x86_64' 'aarch64')
-url="https://github.com/Kai-J-G/Cosmic-Mini-TaskManager"
+url="https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager"
 license=('MIT')
 depends=('cosmic-icon-theme' 'glibc' 'gcc-libs')
 makedepends=('cargo' 'just')
