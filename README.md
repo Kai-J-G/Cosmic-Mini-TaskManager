@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg" width="180" alt="Cosmic Mini Task Manager icon">
+<img src="data/icons/io.github.kai_j_g.MiniTaskManager.svg" width="180" alt="Cosmic Mini Task Manager icon">
 
 # MINI TASK MANAGER
 
@@ -9,7 +9,7 @@
 An applet for the COSMIC™ desktop.
 
 ![license MIT](https://img.shields.io/badge/license-MIT-blue)
-![release v1.2.1](https://img.shields.io/badge/release-v1.2.1-brightgreen)
+![release v1.3.0](https://img.shields.io/badge/release-v1.3.0-brightgreen)
 ![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
 ![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
 ![languages 8](https://img.shields.io/badge/languages-8-orange)
@@ -89,10 +89,10 @@ just uninstall
 ```bash
 cargo build --release
 install -Dm0755 target/release/cosmic-ext-mini-taskmanager ~/.local/bin/cosmic-ext-mini-taskmanager
-install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.desktop ~/.local/share/applications/io.github.kai_j_g.CosmicMiniTaskManager.desktop
-install -Dm0644 data/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml ~/.local/share/metainfo/io.github.kai_j_g.CosmicMiniTaskManager.metainfo.xml
-install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager.svg
-install -Dm0644 data/icons/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.CosmicMiniTaskManager-symbolic.svg
+install -Dm0644 data/io.github.kai_j_g.MiniTaskManager.desktop ~/.local/share/applications/io.github.kai_j_g.MiniTaskManager.desktop
+install -Dm0644 data/io.github.kai_j_g.MiniTaskManager.metainfo.xml ~/.local/share/metainfo/io.github.kai_j_g.MiniTaskManager.metainfo.xml
+install -Dm0644 data/icons/io.github.kai_j_g.MiniTaskManager.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.MiniTaskManager.svg
+install -Dm0644 data/icons/io.github.kai_j_g.MiniTaskManager-symbolic.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.kai_j_g.MiniTaskManager-symbolic.svg
 ```
 
 ## Adding it to the panel
