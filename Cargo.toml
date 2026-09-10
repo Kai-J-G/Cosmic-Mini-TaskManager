@@ -1,10 +1,10 @@
 [package]
 name = "cosmic-ext-mini-taskmanager"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2024"
 license = "MIT"
 description = "Native Mini Task Manager applet for the COSMIC desktop"
-repository = "https://github.com/Kai-J-G/Cosmic-Mini-TaskManager"
+repository = "https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -42,11 +42,18 @@
     <keyword>COSMIC</keyword>
   </keywords>
 
-  <url type="homepage">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
-  <url type="bugtracker">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager/issues</url>
-  <url type="vcs-browser">https://github.com/Kai-J-G/Cosmic-Mini-TaskManager</url>
+  <url type="homepage">https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager</url>
+  <url type="bugtracker">https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager/issues</url>
+  <url type="vcs-browser">https://github.com/Kai-J-G/cosmic-ext-mini-taskmanager</url>
 
   <releases>
+    <release version="1.2.1" date="2026-09-10">
+      <description>
+        <p>Project renamed to cosmic-ext-mini-taskmanager to follow System76's COSMIC
+           trademark policy, which reserves the "cosmic-" namespace for official
+           COSMIC software.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-09-09">
       <description>
         <p>Killing a process now also kills its children, so nothing is left orphaned.</p>
