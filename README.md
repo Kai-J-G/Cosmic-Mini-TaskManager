@@ -12,8 +12,7 @@ An applet for the COSMIC™ desktop.
 ![release v1.2.1](https://img.shields.io/badge/release-v1.2.1-brightgreen)
 ![built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust&logoColor=white)
 ![for COSMIC](https://img.shields.io/badge/for-COSMIC-8839ef)
-
-🇬🇧
+![languages 8](https://img.shields.io/badge/languages-8-orange)
 
 <img src="data/screenshots/task-manager-overview.png" width="620" alt="The popup, showing CPU and RAM meters, filter tabs, and process rows">
 
