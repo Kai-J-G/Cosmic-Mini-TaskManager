@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod collector;
+pub mod host;
 pub mod types;
 
 pub use collector::{ProcessCollector, filter_and_sort_processes};

@@ -921,6 +921,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "cosmic-ext-mini-taskmanager"
+version = "1.2.0"
+dependencies = [
+ "i18n-embed",
+ "i18n-embed-fl",
+ "libc",
+ "libcosmic",
+ "rust-embed",
+ "serde",
+ "sysinfo",
+]
+
+[[package]]
 name = "cosmic-freedesktop-icons"
 version = "0.4.0"
 source = "git+https://github.com/pop-os/freedesktop-icons#ab4c57b8e416c6af9297cb04d101889896fd9a92"
@@ -932,19 +945,6 @@ dependencies = [
  "thiserror 2.0.20",
  "tracing",
  "xdg",
-]
-
-[[package]]
-name = "cosmic-mini-taskmanager"
-version = "1.1.0"
-dependencies = [
- "i18n-embed",
- "i18n-embed-fl",
- "libc",
- "libcosmic",
- "rust-embed",
- "serde",
- "sysinfo",
 ]
 
 [[package]]

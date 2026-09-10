@@ -7,6 +7,7 @@ use sysinfo::{
     CpuRefreshKind, MemoryRefreshKind, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind,
 };
 
+use super::host;
 use super::types::{FilterTab, ProcessItem, ProcessState, SystemOverview};
 
 /// How many consecutive polls a process must spend in uninterruptible sleep
@@ -30,6 +31,12 @@ pub struct ProcessCollector {
     desktop_apps: HashMap<String, DesktopAppEntry>,
     /// Consecutive polls each PID has spent in uninterruptible sleep.
     disk_sleep_ticks: HashMap<u32, u8>,
+    /// Inside Flatpak, `sysinfo` would only see the sandbox's own handful of
+    /// PIDs, so process data comes from the host instead.
+    use_host: bool,
+    /// Previous CPU tick counts, for the host path. `sysinfo` keeps its own.
+    prev_cpu_ticks: HashMap<u32, u64>,
+    prev_total_ticks: u64,
 }
 
 impl ProcessCollector {
@@ -47,10 +54,123 @@ impl ProcessCollector {
             sys,
             desktop_apps: scan_desktop_applications(),
             disk_sleep_ticks: HashMap::new(),
+            use_host: host::is_sandboxed(),
+            prev_cpu_ticks: HashMap::new(),
+            prev_total_ticks: 0,
         }
     }
 
     pub fn collect(&mut self) -> (SystemOverview, Vec<ProcessItem>) {
+        if self.use_host {
+            match self.collect_from_host() {
+                Ok(result) => return result,
+                Err(error) => {
+                    // Fall through to sysinfo rather than showing nothing. The
+                    // list will be near-empty, which is a visible symptom, and
+                    // better than a blank popup with no explanation.
+                    eprintln!("cosmic-ext-mini-taskmanager: host poll failed: {error}");
+                }
+            }
+        }
+
+        self.collect_from_sysinfo()
+    }
+
+    /// Reads the host's process table through `flatpak-spawn --host`.
+    ///
+    /// `/proc/<pid>` holds one entry per thread-group leader, so unlike the
+    /// `sysinfo` path this cannot pick up threads in the first place.
+    fn collect_from_host(&mut self) -> std::io::Result<(SystemOverview, Vec<ProcessItem>)> {
+        let snapshot = host::snapshot()?;
+
+        // CPU usage is a delta. Both totals are across all cores already, so
+        // the ratio is a share of the whole machine with no scaling needed.
+        let total_delta = snapshot.total_ticks.saturating_sub(self.prev_total_ticks) as f32;
+        let first_poll = self.prev_total_ticks == 0;
+
+        let mut items = Vec::with_capacity(snapshot.processes.len());
+        let mut ticks = HashMap::with_capacity(snapshot.processes.len());
+        let mut unresponsive = 0;
+        let mut seen_disk_sleep = HashSet::new();
+        let mut used_memory = 0u64;
+
+        for proc_ in &snapshot.processes {
+            ticks.insert(proc_.pid, proc_.cpu_ticks);
+            used_memory = used_memory.saturating_add(proc_.memory_bytes);
+
+            // `ps` renders kernel threads as "[kworker/0:1]". They have no
+            // command line of their own and aren't ours to manage.
+            let is_kernel_thread = proc_.cmd.starts_with('[') && proc_.cmd.ends_with(']');
+            if (proc_.cmd.is_empty() || is_kernel_thread) && proc_.pid != 1 {
+                continue;
+            }
+
+            let status = classify_state(
+                proc_.pid,
+                proc_.state,
+                &mut self.disk_sleep_ticks,
+                &mut seen_disk_sleep,
+            );
+            if status.is_unresponsive_or_stopped() {
+                unresponsive += 1;
+            }
+
+            let cpu_usage = if first_poll || total_delta <= 0.0 {
+                0.0
+            } else {
+                let before = self.prev_cpu_ticks.get(&proc_.pid).copied().unwrap_or(0);
+                let delta = proc_.cpu_ticks.saturating_sub(before) as f32;
+                (delta / total_delta * 100.0).clamp(0.0, 100.0)
+            };
+
+            let first_arg = proc_.cmd.split_whitespace().next();
+            let (name, icon_name, is_gui_app) = self.match_app_info(&proc_.name, first_arg);
+
+            items.push(ProcessItem {
+                pid: proc_.pid,
+                parent: proc_.parent,
+                name,
+                cmd: proc_.cmd.clone(),
+                cpu_usage,
+                memory_bytes: proc_.memory_bytes,
+                status,
+                is_gui_app,
+                icon_name,
+            });
+        }
+
+        self.disk_sleep_ticks
+            .retain(|pid, _| seen_disk_sleep.contains(pid));
+        self.prev_cpu_ticks = ticks;
+        self.prev_total_ticks = snapshot.total_ticks;
+
+        // The sandbox's /proc/meminfo does report host-wide memory.
+        self.sys.refresh_memory();
+        let total_memory = self.sys.total_memory();
+        let host_used = self.sys.used_memory();
+        let memory_percent = if total_memory > 0 {
+            (host_used as f32 / total_memory as f32) * 100.0
+        } else {
+            0.0
+        };
+
+        let overview = SystemOverview {
+            total_cpu_percent: items
+                .iter()
+                .map(|i| i.cpu_usage)
+                .sum::<f32>()
+                .clamp(0.0, 100.0),
+            used_memory_bytes: host_used,
+            total_memory_bytes: total_memory,
+            memory_percent,
+            total_processes: items.len(),
+            unresponsive_or_stopped_count: unresponsive,
+        };
+
+        Ok((overview, items))
+    }
+
+    fn collect_from_sysinfo(&mut self) -> (SystemOverview, Vec<ProcessItem>) {
         self.sys.refresh_cpu_all();
         self.sys.refresh_memory();
         // Only the fields we actually display. `everything()` would also read
@@ -198,6 +318,34 @@ fn classify(
     }
 }
 
+/// Maps a `/proc/<pid>/stat` state letter onto our own, sharing the
+/// uninterruptible-sleep debounce with the `sysinfo` path.
+fn classify_state(
+    pid: u32,
+    state: char,
+    disk_sleep_ticks: &mut HashMap<u32, u8>,
+    seen_disk_sleep: &mut HashSet<u32>,
+) -> ProcessState {
+    if state == 'D' {
+        seen_disk_sleep.insert(pid);
+        let ticks = disk_sleep_ticks.entry(pid).or_insert(0);
+        *ticks = ticks.saturating_add(1);
+        return if *ticks >= DISK_SLEEP_TICKS {
+            ProcessState::DiskSleep
+        } else {
+            ProcessState::Sleeping
+        };
+    }
+
+    match state {
+        'R' => ProcessState::Running,
+        'S' | 'I' => ProcessState::Sleeping,
+        'T' | 't' => ProcessState::Stopped,
+        'Z' | 'X' | 'x' => ProcessState::Zombie,
+        _ => ProcessState::Other,
+    }
+}
+
 /// Filters by tab and search query, then orders the result.
 ///
 /// Every comparison ends in a PID tiebreak so the ordering is total and rows
@@ -267,19 +415,8 @@ fn file_stem_lower(path: &str) -> Option<String> {
 }
 
 fn scan_desktop_applications() -> HashMap<String, DesktopAppEntry> {
-    let mut dirs = vec![
-        PathBuf::from("/usr/share/applications"),
-        PathBuf::from("/usr/local/share/applications"),
-        PathBuf::from("/var/lib/flatpak/exports/share/applications"),
-    ];
-
-    if let Some(data_home) = data_home() {
-        dirs.push(data_home.join("applications"));
-        dirs.push(data_home.join("flatpak/exports/share/applications"));
-    }
-
     let mut map = HashMap::new();
-    for dir in dirs {
+    for dir in desktop_dirs() {
         let Ok(entries) = fs::read_dir(dir) else {
             continue;
         };
@@ -292,6 +429,36 @@ fn scan_desktop_applications() -> HashMap<String, DesktopAppEntry> {
     }
 
     map
+}
+
+/// Directories holding `.desktop` files, per the XDG base directory spec.
+///
+/// Reading `XDG_DATA_DIRS` rather than hardcoding `/usr/share` is what the
+/// spec asks for, and it is also how the Flatpak build sees the host's
+/// applications: the wrapper points those variables at `/run/host/usr/share`,
+/// since the sandbox's own `/usr/share/applications` is nearly empty.
+fn desktop_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+
+    if let Some(data_home) = data_home() {
+        dirs.push(data_home.join("applications"));
+        dirs.push(data_home.join("flatpak/exports/share/applications"));
+    }
+
+    let data_dirs = std::env::var_os("XDG_DATA_DIRS")
+        .filter(|dirs| !dirs.is_empty())
+        .unwrap_or_else(|| "/usr/local/share:/usr/share".into());
+
+    for dir in std::env::split_paths(&data_dirs) {
+        dirs.push(dir.join("applications"));
+    }
+
+    // Flatpak exports are not always listed in XDG_DATA_DIRS.
+    dirs.push(PathBuf::from("/var/lib/flatpak/exports/share/applications"));
+
+    dirs.sort();
+    dirs.dedup();
+    dirs
 }
 
 fn data_home() -> Option<PathBuf> {
@@ -635,5 +802,44 @@ mod tests {
 
     fn pids(items: &[&ProcessItem]) -> Vec<u32> {
         items.iter().map(|p| p.pid).collect()
+    }
+}
+
+#[cfg(test)]
+mod desktop_dir_tests {
+    use super::*;
+
+    /// One test, because `XDG_DATA_DIRS` is process-wide state: split across
+    /// `#[test]` functions these race each other and fail intermittently.
+    #[test]
+    fn desktop_dirs_follow_the_xdg_spec() {
+        // SAFETY: the env is only touched here, and this is the sole test in
+        // this module, so no other thread reads it concurrently.
+        unsafe {
+            std::env::set_var("XDG_DATA_DIRS", "/run/host/usr/share:/app/share");
+        }
+        let dirs = desktop_dirs();
+        // This is how the Flatpak build reaches the host's applications.
+        assert!(dirs.contains(&PathBuf::from("/run/host/usr/share/applications")));
+        assert!(dirs.contains(&PathBuf::from("/app/share/applications")));
+
+        // Duplicated entries must not mean scanning a directory twice.
+        unsafe {
+            std::env::set_var("XDG_DATA_DIRS", "/usr/share:/usr/share");
+        }
+        let dirs = desktop_dirs();
+        let seen = dirs
+            .iter()
+            .filter(|d| *d == &PathBuf::from("/usr/share/applications"))
+            .count();
+        assert_eq!(seen, 1);
+
+        // Unset falls back to the spec default.
+        unsafe {
+            std::env::remove_var("XDG_DATA_DIRS");
+        }
+        let dirs = desktop_dirs();
+        assert!(dirs.contains(&PathBuf::from("/usr/share/applications")));
+        assert!(dirs.contains(&PathBuf::from("/usr/local/share/applications")));
     }
 }

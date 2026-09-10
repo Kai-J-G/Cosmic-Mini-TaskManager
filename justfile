@@ -1,4 +1,4 @@
-name := 'cosmic-mini-taskmanager'
+name := 'cosmic-ext-mini-taskmanager'
 export APPID := 'io.github.kai_j_g.CosmicMiniTaskManager'
 
 rootdir := env_var_or_default("DESTDIR", "")
